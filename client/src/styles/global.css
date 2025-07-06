@@ -1,0 +1,106 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    -webkit-touch-callout: none;
+  }
+
+  *::before {
+    box-sizing: border-box;
+  }
+
+  div {
+    white-space: pre-wrap;
+  }
+
+  textarea {
+    appearance: none;
+    -webkit-appearance: none;
+    -webkit-border-radius: 0;
+  }
+
+  input:focus,
+  textarea:focus {
+    outline: none;
+    caret-color: white;
+  }
+
+  select {
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    /*화살표 배경 넣기*/
+    /* background: #fff url('이미지경로') no-repeat 98% center; */
+  }
+
+  select::-ms-expand {
+    /* 화살표 없애기 for IE10, 11*/
+    display: none;
+  }
+
+  div {
+    /* border: 1px solid red;
+    border-style: dashed; */
+  }
+
+  #__next,
+  html,
+  body {
+    @apply font-pretendard;
+
+    margin: 0;
+    padding: 0;
+    /* 16px */
+    font-size: 100%;
+    background-color: black;
+    color: white;
+    width: 100vw;
+    height: 100dvh;
+    overscroll-behavior: none;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -khtml-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+
+    @media all and (display-mode: standalone) {
+      height: 100vh;
+    }
+  }
+
+  canvas {
+    touch-action: none;
+  }
+
+  .no-pointer-events {
+    pointer-events: none;
+  }
+
+  /* ( 크롬, 사파리, 오페라, 엣지 ) 동작 */
+  ::-webkit-scrollbar {
+    display: none;
+  }
+
+  .no-scroll-bar {
+    -ms-overflow-style: none;
+    /* IE and Edge */
+    scrollbar-width: none;
+    /* Firefox */
+  }
+
+  .no-scroll-bar::-webkit-scrollbar {
+    display: none;
+    /* Chrome, Safari, Opera*/
+  }
+
+  .checking {
+    /*  border border-red-500 border-dashed */
+    border: 1px solid red;
+    border-style: dashed;
+  }
+
+
+}
