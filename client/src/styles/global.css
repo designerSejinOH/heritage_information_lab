@@ -5,11 +5,10 @@
 @layer base {
   * {
     -webkit-touch-callout: none;
-  }
-
-  *::before {
     box-sizing: border-box;
   }
+
+
 
   div {
     white-space: pre-wrap;

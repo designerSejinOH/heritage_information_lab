@@ -1,107 +1,179 @@
 'use client'
 
-import React, { useState, useRef, useMemo } from 'react'
+import React, { useRef, useMemo, Suspense } from 'react'
 import { Canvas, useFrame } from '@react-three/fiber'
-import { OrbitControls } from '@react-three/drei'
-import * as THREE from 'three'
+import { Html, OrbitControls } from '@react-three/drei'
+import { a, useSpring } from '@react-spring/three'
 import dynamic from 'next/dynamic'
-import classNames from 'classnames'
+import { Bloom, Depth, DepthOfField, EffectComposer, Noise } from '@react-three/postprocessing'
+import { BlurPass, Resizer, KernelSize, Resolution, BlendFunction } from 'postprocessing'
 
-const View = dynamic(() => import('@/components/canvas/View').then((mod) => mod.View), {
-  ssr: false,
-})
+const View = dynamic(() => import('@/components/canvas/View').then((m) => m.View), { ssr: false })
 
-// 개별 점 컴포넌트
-function Point({ position, targetPosition, isGathering, index }) {
-  const meshRef = useRef()
-  const [currentPos, setCurrentPos] = useState(position)
+// ─────────────────────────────────────────
+// 개별 점 (포인트로 변경)
+// ─────────────────────────────────────────
+import * as THREE from 'three'
 
-  useFrame((state, delta) => {
-    if (meshRef.current) {
-      const target = isGathering ? targetPosition : position
+function Point({ artifact, shouldGather, targetPos, originalPos, hasActiveFilters }) {
+  const mesh = useRef<THREE.Mesh>(null)
 
-      // 부드러운 애니메이션을 위한 lerp
-      meshRef.current.position.lerp(new THREE.Vector3(target[0], target[1], target[2]), delta * 2)
+  // spring 애니메이션
+  const { pos, scl } = useSpring({
+    pos: shouldGather ? targetPos : originalPos,
+    scl: shouldGather ? 1.5 : 1,
+    config: { mass: 1, tension: 170, friction: 26 },
+  })
 
-      // 약간의 회전 애니메이션
-      meshRef.current.rotation.x += delta * 0.5
-      meshRef.current.rotation.y += delta * 0.3
+  // 회전
+  useFrame((_, d) => {
+    if (mesh.current) {
+      mesh.current.rotation.x += d * 0.5
+      mesh.current.rotation.y += d * 0.3
     }
   })
 
+  // 색상 매핑
+  const colorMap = {
+    원형: '#ff6b6b',
+    원기둥형: '#4ecdc4',
+    사각형: '#45b7d1',
+    삼각형: '#96ceb4',
+    인물형: '#feca57',
+    기하학형: '#ff9ff3',
+    동물형: '#54a0ff',
+  }
+  const col = colorMap[artifact.형태] || '#74c0fc'
+
+  // 투명도 계산: 필터가 없으면 모두 1, 있으면 선택된 것만 1
+  const opacity = !hasActiveFilters ? 1 : shouldGather ? 1 : 0.8
+
   return (
-    <mesh ref={meshRef} position={position}>
-      <sphereGeometry args={[0.03, 8, 8]} />
+    <a.mesh ref={mesh} position={pos} scale={!hasActiveFilters ? 1 : shouldGather ? 2 : 0.5} castShadow receiveShadow>
+      {/* point */}
+      <sphereGeometry args={[0.08, 32, 32]} />
+      {/* material */}
       <meshStandardMaterial
-        color={isGathering ? '#ff6b6b' : '#74c0fc'}
-        emissive={isGathering ? '#ff3333' : '#4dabf7'}
-        emissiveIntensity={0.2}
+        color={col}
+        emissiveIntensity={1}
+        emissive={col}
+        transparent
+        opacity={opacity}
+        metalness={0.7}
+        roughness={0.1}
       />
-    </mesh>
+    </a.mesh>
   )
 }
 
-// 메인 포인트 스피어 컴포넌트
-function PointSphere() {
-  const [isGathering, setIsGathering] = useState(false)
-  const pointCount = 100
+// ─────────────────────────────────────────
+// 포인트 시스템
+// ─────────────────────────────────────────
+function PointSystem({ artifacts, selectedFilters }) {
+  // 1) 필터가 하나라도 켜졌는지
+  const hasActiveFilters = useMemo(() => Object.values(selectedFilters).some(Boolean), [selectedFilters])
 
-  // 점들의 초기 위치와 구형 위치를 미리 계산
-  const points = useMemo(() => {
-    const initialPoints = []
-    const spherePoints = []
+  // 2) 모일 대상
+  const gatheredArtifacts = useMemo(() => {
+    if (!hasActiveFilters) return []
 
-    for (let i = 0; i < pointCount; i++) {
-      // 초기 위치: 넓은 범위에 랜덤하게 분산
-      const initialPos = [(Math.random() - 0.5) * 10, (Math.random() - 0.5) * 10, (Math.random() - 0.5) * 10]
+    return artifacts.filter((artifact) =>
+      Object.entries(selectedFilters).every(([key, val]) => {
+        if (!val) return true
+        if (key === '형태' && artifact[key]?.includes(',')) {
+          return artifact[key]
+            .split(',')
+            .map((s) => s.trim())
+            .includes(val)
+        }
+        return artifact[key] === val
+      }),
+    )
+  }, [artifacts, selectedFilters, hasActiveFilters])
 
-      // 구형 위치: 피보나치 스피어 분포 사용
-      const phi = Math.acos(1 - (2 * i) / pointCount)
+  // 3) 좌표 계산
+  const { originalPosArr, spherePosArr } = useMemo(() => {
+    const ori = []
+    const sph = []
+
+    artifacts.forEach((a, i) => {
+      const idStr = a.id || `artifact_${i}`
+      const seed = idStr.split('').reduce((s, c) => s + c.charCodeAt(0), 0) + i
+      const rand = (n) => ((((Math.sin(seed * n) % 1) + 1) % 1) - 0.5) * 30
+      ori.push([rand(12.9898), rand(78.233), rand(39.346)])
+    })
+
+    const cnt = gatheredArtifacts.length
+    gatheredArtifacts.forEach((_, i) => {
+      const phi = Math.acos(1 - (2 * i) / cnt)
       const theta = Math.PI * (1 + Math.sqrt(5)) * i
-      const radius = 2
+      const r = Math.max(1.5, Math.cbrt(cnt) * 0.4)
+      sph.push([r * Math.sin(phi) * Math.cos(theta), r * Math.sin(phi) * Math.sin(theta), r * Math.cos(phi)])
+    })
 
-      const spherePos = [
-        radius * Math.sin(phi) * Math.cos(theta),
-        radius * Math.sin(phi) * Math.sin(theta),
-        radius * Math.cos(phi),
-      ]
-
-      initialPoints.push(initialPos)
-      spherePoints.push(spherePos)
-    }
-
-    return { initialPoints, spherePoints }
-  }, [pointCount])
+    return { originalPosArr: ori, spherePosArr: sph }
+  }, [artifacts, gatheredArtifacts])
 
   return (
     <>
-      {/* 점들 렌더링 */}
-      {points.initialPoints.map((pos, index) => (
-        <Point
-          key={index}
-          position={pos}
-          targetPosition={points.spherePoints[index]}
-          isGathering={isGathering}
-          index={index}
-        />
-      ))}
+      {artifacts.map((artifact, idx) => {
+        const gi = gatheredArtifacts.findIndex((g) => g.id === artifact.id)
+        const gather = gi !== -1
+        const target = gather ? spherePosArr[gi] : originalPosArr[idx]
 
-      {/* 배경 조명 */}
+        return (
+          <Point
+            key={artifact.id}
+            artifact={artifact}
+            shouldGather={gather}
+            targetPos={target}
+            originalPos={originalPosArr[idx]}
+            hasActiveFilters={hasActiveFilters}
+          />
+        )
+      })}
+
+      {/* 조명 & 컨트롤 */}
       <ambientLight intensity={0.3} />
-      <pointLight position={[10, 10, 10]} intensity={0.8} />
-      <pointLight position={[-10, -10, -10]} intensity={0.4} />
-
-      {/* 카메라 컨트롤 */}
-      <OrbitControls enablePan={true} enableZoom={true} enableRotate={true} />
+      <pointLight position={[10, 10, 10]} intensity={0.6} />
+      <directionalLight position={[0, 10, 5]} intensity={0.5} />
+      <OrbitControls maxDistance={25} minDistance={3} enableZoom={false} autoRotate autoRotateSpeed={0.5} />
     </>
   )
 }
 
-// 메인 앱 컴포넌트
-export function Foo({ className }: { className?: string }) {
+// ─────────────────────────────────────────
+// Foo (캔버스 래퍼)
+// ─────────────────────────────────────────
+export function Foo({ className, artifacts, selectedFilters }) {
   return (
-    <View className={className}>
-      <PointSphere />
-    </View>
+    <div className={className}>
+      <Canvas
+        camera={{ position: [0, 10, 0], fov: 60 }}
+        shadows
+        dpr={[1, 2]}
+        className='size-full'
+        style={{ background: '#000' }}
+      >
+        <Suspense
+          fallback={
+            <Html center className='text-white text-lg'>
+              Loading...
+            </Html>
+          }
+        >
+          <PointSystem artifacts={artifacts} selectedFilters={selectedFilters} />
+          <EffectComposer>
+            <Bloom
+              luminanceThreshold={0.1}
+              luminanceSmoothing={0.1}
+              intensity={2}
+              mipmapBlur={true}
+              kernelSize={KernelSize.LARGE}
+            />
+          </EffectComposer>
+        </Suspense>
+      </Canvas>
+    </div>
   )
 }
