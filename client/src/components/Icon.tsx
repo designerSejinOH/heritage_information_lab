@@ -6,12 +6,14 @@ import logo from '@/svgs/logo.svg'
 import arrowLeft from '@/svgs/arrowLeft.svg'
 import arrowRight from '@/svgs/arrowRight.svg'
 import nmkLogo from '@/svgs/nmk-logo.svg'
+import nmkwhite from '@/svgs/nmk-white.svg'
 
 export const icons = {
   logo,
   arrowLeft,
   arrowRight,
   nmkLogo,
+  nmkwhite,
 }
 
 interface IconProps {

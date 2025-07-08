@@ -15,7 +15,7 @@ export const Header = ({ className, height = 80 }: HeaderProps) => {
   return (
     <div
       className={classNames(
-        ' w-full bg-black text-white fixed top-0 left-0 px-4 md:px-6 flex flex-row justify-between items-center',
+        ' w-full bg-black text-white px-4 md:px-6 flex flex-row justify-between items-center',
         className,
       )}
       style={{ height }}

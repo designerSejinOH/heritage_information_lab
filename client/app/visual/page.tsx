@@ -12,7 +12,7 @@ const View = dynamic(() => import('@/components/canvas/View').then((mod) => mod.
 export default function Page() {
   return (
     <>
-      <View perf className='w-screen h-dvh flex-col items-center justify-center'>
+      <View perf className='h-dvh w-screen flex-col items-center justify-center'>
         <Box position={[0, 0, 0]} />
         <OrbitControls />
       </View>
