@@ -17,7 +17,6 @@ import * as THREE from 'three'
 
 function Point({ artifact, shouldGather, targetPos, originalPos, hasActiveFilters }) {
   const mesh = useRef<THREE.Mesh>(null)
-
   // spring 애니메이션
   const { pos, scl } = useSpring({
     pos: shouldGather ? targetPos : originalPos,
