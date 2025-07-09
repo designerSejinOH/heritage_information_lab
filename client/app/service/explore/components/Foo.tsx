@@ -4,11 +4,8 @@ import React, { useRef, useMemo, Suspense } from 'react'
 import { Canvas, useFrame } from '@react-three/fiber'
 import { Html, OrbitControls } from '@react-three/drei'
 import { a, useSpring } from '@react-spring/three'
-import dynamic from 'next/dynamic'
 import { Bloom, Depth, DepthOfField, EffectComposer, Noise } from '@react-three/postprocessing'
 import { BlurPass, Resizer, KernelSize, Resolution, BlendFunction } from 'postprocessing'
-
-const View = dynamic(() => import('@/components/canvas/View').then((m) => m.View), { ssr: false })
 
 // ─────────────────────────────────────────
 // 개별 점 (포인트로 변경)
