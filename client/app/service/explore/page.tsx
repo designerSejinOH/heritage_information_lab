@@ -99,10 +99,7 @@ function FilterStep({ step, options, selected, onSelect, isActive, filterType })
 }
 
 export default function Page() {
-  const [artifacts, setArtifacts] = useState([])
-  const [loading, setLoading] = useState(true)
   const [mounted, setMounted] = useState(false)
-  const [error, setError] = useState(null)
   const [currentStep, setCurrentStep] = useState(0)
   const [selectedFilters, setSelectedFilters] = useState({
     형태: null,
@@ -110,6 +107,16 @@ export default function Page() {
     시대: null,
     용도: null,
   })
+
+  // 정적 데이터를 바로 사용
+  const artifacts = useMemo(() => {
+    if (Array.isArray(listData)) {
+      return listData.filter((item) => item && typeof item === 'object')
+    } else if (listData.artifacts && Array.isArray(listData.artifacts)) {
+      return listData.artifacts.filter((item) => item && typeof item === 'object')
+    }
+    return []
+  }, [])
 
   // 클라이언트 마운트 확인
   useEffect(() => {
@@ -281,7 +288,7 @@ export default function Page() {
             ))}
           </div>
           <div className='text-white text-sm'>
-            진행률: {progress.toFixed(0)}% | {filteredArtifacts?.length || 0}개 유물 발견
+            진행률: {progress.toFixed(0)}% | {filteredArtifacts.length}개 유물 발견
           </div>
           <div className='w-48 h-2 bg-gray-700 rounded-full overflow-hidden'>
             <div
@@ -298,8 +305,8 @@ export default function Page() {
         <div className='bg-black rounded-lg overflow-hidden'>
           <Foo
             className='w-full h-full flex flex-col items-center justify-center'
-            artifacts={artifacts || []}
-            selectedFilters={selectedFilters || {}}
+            artifacts={artifacts}
+            selectedFilters={selectedFilters}
           />
         </div>
 
@@ -308,7 +315,7 @@ export default function Page() {
           <div className='text-white'>
             <h3 className='text-lg font-semibold'>필터링 결과</h3>
             <p className='text-sm opacity-80'>
-              총 {artifacts?.length || 0}개 중 {filteredArtifacts?.length || 0}개 유물이 모든 조건에 맞습니다
+              총 {artifacts.length}개 중 {filteredArtifacts.length}개 유물이 모든 조건에 맞습니다
             </p>
             <p className='text-xs opacity-60'>가운데 구형으로 모인 점들이 선택된 유물들입니다</p>
           </div>
