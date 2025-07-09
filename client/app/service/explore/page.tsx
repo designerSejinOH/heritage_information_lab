@@ -95,6 +95,7 @@ function FilterStep({ step, options, selected, onSelect, isActive, filterType })
 export default function Page() {
   const [artifacts, setArtifacts] = useState([])
   const [loading, setLoading] = useState(true)
+  const [mounted, setMounted] = useState(false)
   const [currentStep, setCurrentStep] = useState(0)
   const [selectedFilters, setSelectedFilters] = useState({
     형태: null,
@@ -103,12 +104,27 @@ export default function Page() {
     용도: null,
   })
 
+  // 클라이언트 마운트 확인
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
   // list.json 데이터 로드
   useEffect(() => {
+    if (!mounted) return // 클라이언트에서만 실행
+
     const loadArtifacts = async () => {
       try {
         setLoading(true)
+
+        // 약간의 지연을 두어 DOM이 완전히 로드된 후 실행
+        await new Promise((resolve) => setTimeout(resolve, 100))
+
         const response = await fetch('/data/list.json')
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`)
+        }
+
         const data = await response.json()
 
         // 데이터가 배열인지 확인
@@ -127,7 +143,7 @@ export default function Page() {
     }
 
     loadArtifacts()
-  }, [])
+  }, [mounted])
 
   // 누적 필터링된 아티팩트 계산 (모든 선택된 조건을 만족하는 것들만)
   const filteredArtifacts = useMemo(() => {
@@ -176,11 +192,11 @@ export default function Page() {
   const selectedCount = Object.values(selectedFilters).filter((v) => v !== null).length
   const progress = (selectedCount / 4) * 100
 
-  // 로딩 중일 때 표시할 컴포넌트
-  if (loading) {
+  // 로딩 중이거나 마운트되지 않았을 때 표시할 컴포넌트
+  if (!mounted || loading) {
     return (
       <div className='h-screen w-screen bg-black flex items-center justify-center'>
-        <div className='text-white text-xl'>데이터를 불러오는 중...</div>
+        <div className='text-white text-xl'>{!mounted ? '초기화 중...' : '데이터를 불러오는 중...'}</div>
       </div>
     )
   }
@@ -223,11 +239,13 @@ export default function Page() {
       <div className='grid grid-rows-[1fr_auto] gap-6 bg-white/5 backdrop-blur-sm rounded-xl p-6'>
         {/* 3D View */}
         <div className='bg-black rounded-lg overflow-hidden'>
-          <Foo
-            className='w-full h-full flex flex-col items-center justify-center'
-            artifacts={artifacts}
-            selectedFilters={selectedFilters}
-          />
+          {mounted && (
+            <Foo
+              className='w-full h-full flex flex-col items-center justify-center'
+              artifacts={artifacts || []}
+              selectedFilters={selectedFilters}
+            />
+          )}
         </div>
 
         {/* Info Bar */}
