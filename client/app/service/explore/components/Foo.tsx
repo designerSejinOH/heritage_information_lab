@@ -17,7 +17,8 @@ function Point({ artifact, shouldGather, targetPos, originalPos, hasActiveFilter
   // spring 애니메이션
   const { pos, scl } = useSpring({
     pos: shouldGather ? targetPos : originalPos,
-    scl: shouldGather ? 1.5 : 1,
+    scl: !hasActiveFilters ? 1 : shouldGather ? 2 : 0.5,
+    opacity: !hasActiveFilters ? 1 : shouldGather ? 1 : 0.8,
     config: { mass: 1, tension: 170, friction: 26 },
   })
 
@@ -45,7 +46,7 @@ function Point({ artifact, shouldGather, targetPos, originalPos, hasActiveFilter
   const opacity = !hasActiveFilters ? 1 : shouldGather ? 1 : 0.8
 
   return (
-    <a.mesh ref={mesh} position={pos} scale={!hasActiveFilters ? 1 : shouldGather ? 2 : 0.5} castShadow receiveShadow>
+    <a.mesh ref={mesh} position={pos} scale={scl} castShadow receiveShadow>
       {/* point */}
       <sphereGeometry args={[0.08, 32, 32]} />
       {/* material */}

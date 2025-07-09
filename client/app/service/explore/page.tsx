@@ -342,6 +342,9 @@ function AIGenerationSection({ selectedFilters, loadingFilters }) {
 }
 
 import dynamic from 'next/dynamic'
+import { AnimatePresence, motion } from 'framer-motion'
+import { View } from '@react-three/drei'
+import { GeneratingModal } from './components'
 
 const Foo = dynamic(() => import('./components/Foo').then((mod) => mod.Foo), { ssr: false })
 
@@ -358,6 +361,9 @@ export default function Page() {
 
   // 로딩 상태 관리 - 여러 필터 동시 로딩 지원
   const [loadingFilters, setLoadingFilters] = useState(new Set())
+
+  //생성하기 클릭시 생성되는 모달
+  const [showGenerateModal, setShowGenerateModal] = useState(false)
 
   // 누적 필터링된 아티팩트 계산 (모든 선택된 조건을 만족하는 것들만)
   const filteredArtifacts = useMemo(() => {
@@ -405,7 +411,7 @@ export default function Page() {
 
   // 결과 페이지로 이동
   const handleGenerate = () => {
-    alert('생성 기능은 준비 중입니다!')
+    setShowGenerateModal(true)
   }
 
   // 필터 초기화
@@ -556,6 +562,8 @@ export default function Page() {
           </div>
         </aside>
       </div>
+      {/* 생성하기 모달 */}
+      <GeneratingModal showGenerateModal={showGenerateModal} setShowGenerateModal={setShowGenerateModal} />
     </section>
   )
 }
