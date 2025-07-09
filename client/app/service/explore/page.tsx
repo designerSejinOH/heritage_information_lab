@@ -1,14 +1,9 @@
 'use client'
 
 import React, { useState, useEffect, useMemo } from 'react'
-import dynamic from 'next/dynamic'
+import { Foo } from './components'
 import { Icon } from '@/components'
-
-// Foo 컴포넌트를 동적 import로 로드 (SSR 비활성화)
-const Foo = dynamic(() => import('./components').then((mod) => mod.Foo), {
-  ssr: false,
-  loading: () => <div className='flex items-center justify-center h-full text-white'>3D 뷰어 로딩 중...</div>,
-})
+import { list } from './list'
 
 // 필터 옵션들
 const filterOptions = {
@@ -63,28 +58,29 @@ function FilterStep({ step, options, selected, onSelect, isActive, filterType })
 
   return (
     <div
-      className={`p-4 border-2 rounded-lg transition-all duration-300 ${
-        isActive ? 'border-blue-500 bg-blue-50' : selected ? 'border-green-500 bg-green-50' : 'border-gray-300 bg-white'
+      className={`p-4 border rounded-lg transition-all duration-300 snap-start  ${
+        isActive ? ' border-blue-50' : selected ? ' border-green-50' : ' border-white'
       }`}
     >
-      <h3
-        className={`text-lg font-semibold mb-3 ${
-          isActive ? 'text-blue-700' : selected ? 'text-green-700' : 'text-gray-700'
-        }`}
-      >
-        {stepNames[filterType]}
+      <h3 className={`text-lg font-semibold mb-3 text-white`}>
+        {isActive ? `✸` : selected ? `✔` : `➤`} {step + 1}. {stepNames[filterType]} 필터링
       </h3>
-      <div className='h-fit checking'>
+      <div className='h-fit'>
         <div className='space-y-2'>
           {options.map((option) => (
             <button
               key={option}
               onClick={() => onSelect(option)}
-              className={`w-full text-left px-3 py-2 rounded-md transition-colors duration-200 text-sm ${
-                selected === option ? 'bg-blue-500 text-white' : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
-              }`}
+              className={`w-full flex flex-row justify-between items-center text-left px-3 py-2 transition-colors duration-200 text-sm $`}
             >
               {option}
+
+              <input
+                type='checkbox'
+                checked={selected === option}
+                onChange={() => onSelect(option)}
+                className='ml-2 h-4 w-4 accent-blue-500'
+              />
             </button>
           ))}
         </div>
@@ -99,7 +95,7 @@ function FilterStep({ step, options, selected, onSelect, isActive, filterType })
 }
 
 export default function Page() {
-  const [mounted, setMounted] = useState(false)
+  const artifacts = list
   const [currentStep, setCurrentStep] = useState(0)
   const [selectedFilters, setSelectedFilters] = useState({
     형태: null,
@@ -108,117 +104,24 @@ export default function Page() {
     용도: null,
   })
 
-  // 정적 데이터를 바로 사용
-  const artifacts = useMemo(() => {
-    if (Array.isArray(listData)) {
-      return listData.filter((item) => item && typeof item === 'object')
-    } else if (listData.artifacts && Array.isArray(listData.artifacts)) {
-      return listData.artifacts.filter((item) => item && typeof item === 'object')
-    }
-    return []
-  }, [])
-
-  // 클라이언트 마운트 확인
-  useEffect(() => {
-    setMounted(true)
-  }, [])
-
-  // list.json 데이터 로드
-  useEffect(() => {
-    if (!mounted) return // 클라이언트에서만 실행
-
-    const loadArtifacts = async () => {
-      try {
-        setLoading(true)
-        setError(null)
-
-        // 약간의 지연을 두어 DOM이 완전히 로드된 후 실행
-        await new Promise((resolve) => setTimeout(resolve, 300))
-
-        const response = await fetch('/data/list.json')
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`)
-        }
-
-        const data = await response.json()
-
-        // 데이터 유효성 검사를 더 엄격하게
-        if (!data) {
-          throw new Error('No data received')
-        }
-
-        if (Array.isArray(data)) {
-          // 각 아이템도 유효성 검사
-          const validData = data.filter((item) => item && typeof item === 'object')
-          setArtifacts(validData)
-        } else if (data.artifacts && Array.isArray(data.artifacts)) {
-          // 데이터가 { artifacts: [...] } 형태인 경우
-          const validData = data.artifacts.filter((item) => item && typeof item === 'object')
-          setArtifacts(validData)
-        } else {
-          console.error('Data format is not recognized:', data)
-          setArtifacts([])
-        }
-      } catch (error) {
-        console.error('Failed to load artifacts:', error)
-        setError(error.message)
-        setArtifacts([])
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    loadArtifacts()
-  }, [mounted])
-
   // 누적 필터링된 아티팩트 계산 (모든 선택된 조건을 만족하는 것들만)
   const filteredArtifacts = useMemo(() => {
-    try {
-      // artifacts가 배열이 아니거나 없는 경우 빈 배열 반환
-      if (!Array.isArray(artifacts) || artifacts.length === 0) {
-        return []
-      }
+    return artifacts.filter((artifact) => {
+      // 선택된 모든 필터 조건을 확인
+      return Object.entries(selectedFilters).every(([key, value]) => {
+        if (!value) return true // 필터가 선택되지 않은 경우는 무시
 
-      return artifacts.filter((artifact) => {
-        try {
-          // artifact가 객체가 아닌 경우 제외
-          if (!artifact || typeof artifact !== 'object') {
-            return false
-          }
-
-          // 선택된 모든 필터 조건을 확인
-          return Object.entries(selectedFilters).every(([key, value]) => {
-            try {
-              if (!value) return true // 필터가 선택되지 않은 경우는 무시
-
-              // artifact[key]가 존재하는지 확인
-              if (artifact[key] === undefined || artifact[key] === null) {
-                return false
-              }
-
-              // 형태가 여러개인 경우 처리 (예: "사각형, 원형")
-              if (key === '형태' && typeof artifact[key] === 'string' && artifact[key].includes(',')) {
-                return artifact[key]
-                  .split(',')
-                  .map((s) => s.trim())
-                  .includes(value)
-              }
-
-              return artifact[key] === value
-            } catch (filterError) {
-              console.error('Filter error:', filterError)
-              return false
-            }
-          })
-        } catch (artifactError) {
-          console.error('Artifact processing error:', artifactError)
-          return false
+        // 형태가 여러개인 경우 처리 (예: "사각형, 원형")
+        if (key === '형태' && artifact[key]?.includes(',')) {
+          return artifact[key]
+            .split(',')
+            .map((s) => s.trim())
+            .includes(value)
         }
+
+        return artifact[key] === value
       })
-    } catch (useMemoError) {
-      console.error('useMemo error:', useMemoError)
-      return []
-    }
+    })
   }, [artifacts, selectedFilters])
 
   // 필터 선택 핸들러
@@ -235,48 +138,21 @@ export default function Page() {
   }
 
   // 진행률 계산
-  const selectedCount = Object.values(selectedFilters || {}).filter((v) => v !== null).length
+  const selectedCount = Object.values(selectedFilters).filter((v) => v !== null).length
   const progress = (selectedCount / 4) * 100
 
-  // 로딩 중이거나 마운트되지 않았을 때 표시할 컴포넌트
-  if (!mounted || loading) {
-    return (
-      <div className='h-screen w-screen bg-black flex items-center justify-center'>
-        <div className='text-white text-xl'>{!mounted ? '초기화 중...' : '데이터를 불러오는 중...'}</div>
-      </div>
-    )
-  }
-
-  // 에러 발생 시 표시할 컴포넌트
-  if (error) {
-    return (
-      <div className='h-screen w-screen bg-black flex items-center justify-center'>
-        <div className='text-white text-center'>
-          <div className='text-xl mb-4'>데이터 로드 중 오류가 발생했습니다</div>
-          <div className='text-sm opacity-80'>{error}</div>
-          <button
-            onClick={() => window.location.reload()}
-            className='mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600'
-          >
-            다시 시도
-          </button>
-        </div>
-      </div>
-    )
-  }
-
   return (
-    <div className='h-screen w-screen bg-black p-6 grid grid-rows-[auto_1fr] grid-cols-[2fr_1fr] gap-6'>
-      {/* Header - spans both columns */}
-      <header className='col-span-2 grid grid-cols-[auto_1fr] gap-6 items-center'>
+    <section className='flex h-screen w-screen flex-col items-center justify-start gap-6 bg-black p-6'>
+      {/* Header */}
+      <header className='w-full flex items-center justify-between gap-6 px-6 h-24'>
         {/* Logo */}
-        <div className='flex items-center gap-4'>
+        <div className='flex h-full w-fit flex-col items-start justify-center gap-1'>
           <Icon icon='nmkwhite' size={180} className='' />
-          <span className='text-4xl font-medium text-white whitespace-nowrap'>눈으로 보는 유물의 길</span>
+          <span className='size-fit text-nowrap text-4xl font-medium text-white'>눈으로 보는 유물의 길</span>
         </div>
 
         {/* Step Progress */}
-        <div className='grid justify-items-end gap-2'>
+        <div className='flex h-full w-full flex-col items-end justify-center gap-2'>
           <div className='flex space-x-2'>
             {[0, 1, 2, 3].map((step) => (
               <div
@@ -299,78 +175,73 @@ export default function Page() {
         </div>
       </header>
 
-      {/* Left Section - 3D View and Info */}
-      <div className='grid grid-rows-[1fr_auto] gap-6 bg-white/5 backdrop-blur-sm rounded-xl p-6'>
+      <div className='w-full flex flex-row gap-6 px-6 pb-6 min-h-0'>
         {/* 3D View */}
-        <div className='bg-black rounded-lg overflow-hidden'>
-          <Foo
-            className='w-full h-full flex flex-col items-center justify-center'
-            artifacts={artifacts}
-            selectedFilters={selectedFilters}
-          />
-        </div>
+        <div className='flex-1 flex flex-col gap-6 min-h-0'>
+          <Foo className='flex-1 min-h-0' artifacts={artifacts} selectedFilters={selectedFilters} />
 
-        {/* Info Bar */}
-        <div className='grid grid-cols-[1fr_auto] gap-4 items-center bg-white/10 backdrop-blur-sm rounded-lg p-4'>
-          <div className='text-white'>
-            <h3 className='text-lg font-semibold'>필터링 결과</h3>
-            <p className='text-sm opacity-80'>
-              총 {artifacts.length}개 중 {filteredArtifacts.length}개 유물이 모든 조건에 맞습니다
-            </p>
-            <p className='text-xs opacity-60'>가운데 구형으로 모인 점들이 선택된 유물들입니다</p>
-          </div>
-          <button
-            onClick={() => {
-              setSelectedFilters({
-                형태: null,
-                재질_분류: null,
-                시대: null,
-                용도: null,
-              })
-              setCurrentStep(0)
-            }}
-            className='px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors duration-200'
-          >
-            필터 초기화
-          </button>
-        </div>
-      </div>
-
-      {/* Right Section - Filter Panel */}
-      <div className='grid grid-rows-[auto_1fr] gap-4 bg-white/5 backdrop-blur-sm rounded-xl p-6'>
-        {/* 선택된 필터들 요약 */}
-        {Object.entries(selectedFilters).some(([_, value]) => value) && (
-          <div className='p-4 bg-white rounded-lg shadow-lg'>
-            <h3 className='font-semibold text-gray-700 mb-2'>선택된 필터:</h3>
-            <div className='grid gap-1'>
-              {Object.entries(selectedFilters).map(
-                ([key, value]) =>
-                  value && (
-                    <div key={key} className='grid grid-cols-[auto_1fr] gap-4 items-center'>
-                      <span className='text-sm text-gray-600'>{key === '재질_분류' ? '재질' : key}:</span>
-                      <span className='font-medium text-sm justify-self-end'>{value}</span>
-                    </div>
-                  ),
-              )}
+          {/* Info Bar */}
+          <div className='flex h-24 w-full flex-row items-center justify-between gap-4 bg-white/10 backdrop-blur-sm rounded-lg p-4'>
+            <div className='text-white'>
+              <h3 className='text-lg font-semibold'>필터링 결과</h3>
+              <p className='text-sm opacity-80'>
+                총 {artifacts.length}개 중 {filteredArtifacts.length}개 유물이 모든 조건에 맞습니다
+              </p>
+              <p className='text-xs opacity-60'>가운데 구형으로 모인 점들이 선택된 유물들입니다</p>
             </div>
+            <button
+              onClick={() => {
+                setSelectedFilters({
+                  형태: null,
+                  재질_분류: null,
+                  시대: null,
+                  용도: null,
+                })
+                setCurrentStep(0)
+              }}
+              className='px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors duration-200'
+            >
+              필터 초기화
+            </button>
           </div>
-        )}
-
-        {/* 필터 단계들 */}
-        <div className='overflow-y-auto grid gap-4 content-start pr-2'>
-          {['형태', '재질_분류', '시대', '용도'].map((filterType, index) => (
-            <FilterStep
-              key={filterType}
-              step={index}
-              filterType={filterType}
-              options={filterOptions[filterType]}
-              selected={selectedFilters[filterType]}
-              onSelect={(value) => handleFilterSelect(filterType, value)}
-              isActive={index === currentStep}
-            />
-          ))}
         </div>
+
+        {/* Filter Panel */}
+        <aside className='w-2/5 max-w-md flex flex-col gap-4 overflow-y-auto'>
+          {/* 선택된 필터들 요약 */}
+          {Object.entries(selectedFilters).some(([_, value]) => value) && (
+            <div className='w-full mb-4 p-4 border rounded-lg'>
+              <h3 className='font-semibold text-white mb-2'>선택된 필터:</h3>
+              <div className='space-y-1'>
+                {Object.entries(selectedFilters).map(
+                  ([key, value]) =>
+                    value && (
+                      <div key={key} className='flex justify-between items-center'>
+                        <span className='text-sm text-white/70'>{key === '재질_분류' ? '재질' : key}:</span>
+                        <span className='font-medium text-sm'>{value}</span>
+                      </div>
+                    ),
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* 필터 단계들 */}
+          <div className='w-full h-full overflow-y-scroll snap-y rounded-lg flex flex-col justify-start gap-4'>
+            {['형태', '재질_분류', '시대', '용도'].map((filterType, index) => (
+              <FilterStep
+                key={filterType}
+                step={index}
+                filterType={filterType}
+                options={filterOptions[filterType]}
+                selected={selectedFilters[filterType]}
+                onSelect={(value) => handleFilterSelect(filterType, value)}
+                isActive={index === currentStep}
+              />
+            ))}
+          </div>
+        </aside>
       </div>
-    </div>
+    </section>
   )
 }
