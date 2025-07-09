@@ -1,7 +1,6 @@
 'use client'
 
 import React, { useState, useEffect, useMemo } from 'react'
-import { Foo } from './components'
 import { Icon } from '@/components'
 import { list } from './list'
 import { useRouter } from 'next/navigation'
@@ -341,6 +340,10 @@ function AIGenerationSection({ selectedFilters, loadingFilters }) {
     </div>
   )
 }
+
+import dynamic from 'next/dynamic'
+
+const Foo = dynamic(() => import('./components/Foo').then((mod) => mod.Foo), { ssr: false })
 
 export default function Page() {
   const router = useRouter()

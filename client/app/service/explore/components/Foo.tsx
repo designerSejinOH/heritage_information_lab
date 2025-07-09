@@ -159,7 +159,7 @@ export function Foo({ className, artifacts, selectedFilters }) {
           }
         >
           <PointSystem artifacts={artifacts} selectedFilters={selectedFilters} />
-          {/* <EffectComposer>
+          <EffectComposer>
             <Bloom
               luminanceThreshold={0.1}
               luminanceSmoothing={0.1}
@@ -167,7 +167,7 @@ export function Foo({ className, artifacts, selectedFilters }) {
               mipmapBlur={true}
               kernelSize={KernelSize.LARGE}
             />
-          </EffectComposer> */}
+          </EffectComposer>
         </Suspense>
       </Canvas>
     </div>
