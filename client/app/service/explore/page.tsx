@@ -1,8 +1,14 @@
 'use client'
 
 import React, { useState, useEffect, useMemo } from 'react'
-import { Foo } from './components'
+import dynamic from 'next/dynamic'
 import { Icon } from '@/components'
+
+// Foo 컴포넌트를 동적 import로 로드 (SSR 비활성화)
+const Foo = dynamic(() => import('./components').then((mod) => mod.Foo), {
+  ssr: false,
+  loading: () => <div className='flex items-center justify-center h-full text-white'>3D 뷰어 로딩 중...</div>,
+})
 
 // 필터 옵션들
 const filterOptions = {
@@ -96,6 +102,7 @@ export default function Page() {
   const [artifacts, setArtifacts] = useState([])
   const [loading, setLoading] = useState(true)
   const [mounted, setMounted] = useState(false)
+  const [error, setError] = useState(null)
   const [currentStep, setCurrentStep] = useState(0)
   const [selectedFilters, setSelectedFilters] = useState({
     형태: null,
@@ -116,9 +123,10 @@ export default function Page() {
     const loadArtifacts = async () => {
       try {
         setLoading(true)
+        setError(null)
 
         // 약간의 지연을 두어 DOM이 완전히 로드된 후 실행
-        await new Promise((resolve) => setTimeout(resolve, 100))
+        await new Promise((resolve) => setTimeout(resolve, 300))
 
         const response = await fetch('/data/list.json')
         if (!response.ok) {
@@ -127,15 +135,26 @@ export default function Page() {
 
         const data = await response.json()
 
-        // 데이터가 배열인지 확인
+        // 데이터 유효성 검사를 더 엄격하게
+        if (!data) {
+          throw new Error('No data received')
+        }
+
         if (Array.isArray(data)) {
-          setArtifacts(data)
+          // 각 아이템도 유효성 검사
+          const validData = data.filter((item) => item && typeof item === 'object')
+          setArtifacts(validData)
+        } else if (data.artifacts && Array.isArray(data.artifacts)) {
+          // 데이터가 { artifacts: [...] } 형태인 경우
+          const validData = data.artifacts.filter((item) => item && typeof item === 'object')
+          setArtifacts(validData)
         } else {
-          console.error('Data is not an array:', data)
+          console.error('Data format is not recognized:', data)
           setArtifacts([])
         }
       } catch (error) {
         console.error('Failed to load artifacts:', error)
+        setError(error.message)
         setArtifacts([])
       } finally {
         setLoading(false)
@@ -147,32 +166,52 @@ export default function Page() {
 
   // 누적 필터링된 아티팩트 계산 (모든 선택된 조건을 만족하는 것들만)
   const filteredArtifacts = useMemo(() => {
-    // artifacts가 배열이 아니거나 없는 경우 빈 배열 반환
-    if (!Array.isArray(artifacts) || artifacts.length === 0) {
-      return []
-    }
-
-    return artifacts.filter((artifact) => {
-      // artifact가 객체가 아닌 경우 제외
-      if (!artifact || typeof artifact !== 'object') {
-        return false
+    try {
+      // artifacts가 배열이 아니거나 없는 경우 빈 배열 반환
+      if (!Array.isArray(artifacts) || artifacts.length === 0) {
+        return []
       }
 
-      // 선택된 모든 필터 조건을 확인
-      return Object.entries(selectedFilters).every(([key, value]) => {
-        if (!value) return true // 필터가 선택되지 않은 경우는 무시
+      return artifacts.filter((artifact) => {
+        try {
+          // artifact가 객체가 아닌 경우 제외
+          if (!artifact || typeof artifact !== 'object') {
+            return false
+          }
 
-        // 형태가 여러개인 경우 처리 (예: "사각형, 원형")
-        if (key === '형태' && artifact[key]?.includes(',')) {
-          return artifact[key]
-            .split(',')
-            .map((s) => s.trim())
-            .includes(value)
+          // 선택된 모든 필터 조건을 확인
+          return Object.entries(selectedFilters).every(([key, value]) => {
+            try {
+              if (!value) return true // 필터가 선택되지 않은 경우는 무시
+
+              // artifact[key]가 존재하는지 확인
+              if (artifact[key] === undefined || artifact[key] === null) {
+                return false
+              }
+
+              // 형태가 여러개인 경우 처리 (예: "사각형, 원형")
+              if (key === '형태' && typeof artifact[key] === 'string' && artifact[key].includes(',')) {
+                return artifact[key]
+                  .split(',')
+                  .map((s) => s.trim())
+                  .includes(value)
+              }
+
+              return artifact[key] === value
+            } catch (filterError) {
+              console.error('Filter error:', filterError)
+              return false
+            }
+          })
+        } catch (artifactError) {
+          console.error('Artifact processing error:', artifactError)
+          return false
         }
-
-        return artifact[key] === value
       })
-    })
+    } catch (useMemoError) {
+      console.error('useMemo error:', useMemoError)
+      return []
+    }
   }, [artifacts, selectedFilters])
 
   // 필터 선택 핸들러
@@ -189,7 +228,7 @@ export default function Page() {
   }
 
   // 진행률 계산
-  const selectedCount = Object.values(selectedFilters).filter((v) => v !== null).length
+  const selectedCount = Object.values(selectedFilters || {}).filter((v) => v !== null).length
   const progress = (selectedCount / 4) * 100
 
   // 로딩 중이거나 마운트되지 않았을 때 표시할 컴포넌트
@@ -197,6 +236,24 @@ export default function Page() {
     return (
       <div className='h-screen w-screen bg-black flex items-center justify-center'>
         <div className='text-white text-xl'>{!mounted ? '초기화 중...' : '데이터를 불러오는 중...'}</div>
+      </div>
+    )
+  }
+
+  // 에러 발생 시 표시할 컴포넌트
+  if (error) {
+    return (
+      <div className='h-screen w-screen bg-black flex items-center justify-center'>
+        <div className='text-white text-center'>
+          <div className='text-xl mb-4'>데이터 로드 중 오류가 발생했습니다</div>
+          <div className='text-sm opacity-80'>{error}</div>
+          <button
+            onClick={() => window.location.reload()}
+            className='mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600'
+          >
+            다시 시도
+          </button>
+        </div>
       </div>
     )
   }
@@ -239,13 +296,11 @@ export default function Page() {
       <div className='grid grid-rows-[1fr_auto] gap-6 bg-white/5 backdrop-blur-sm rounded-xl p-6'>
         {/* 3D View */}
         <div className='bg-black rounded-lg overflow-hidden'>
-          {mounted && (
-            <Foo
-              className='w-full h-full flex flex-col items-center justify-center'
-              artifacts={artifacts || []}
-              selectedFilters={selectedFilters}
-            />
-          )}
+          <Foo
+            className='w-full h-full flex flex-col items-center justify-center'
+            artifacts={artifacts || []}
+            selectedFilters={selectedFilters || {}}
+          />
         </div>
 
         {/* Info Bar */}
