@@ -1,7 +1,7 @@
 'use client'
 
-import React, { useState, useEffect, useMemo } from 'react'
-import { Icon } from '@/components'
+import React, { useState, useEffect, useMemo, useRef } from 'react'
+import { Icon, Loading } from '@/components'
 import { list } from './list'
 import { useRouter } from 'next/navigation'
 
@@ -59,8 +59,90 @@ function LoadingSpinner() {
   )
 }
 
-// 필터 단계 컴포넌트
-function FilterStep({ step, options, selected, onSelect, filterType, loadingFilters }) {
+// 스크롤 인디케이터 컴포넌트
+function ScrollIndicator({ scrollContainerRef }) {
+  const [scrollState, setScrollState] = useState({
+    canScrollUp: false,
+    canScrollDown: false,
+    scrollPercentage: 0,
+  })
+
+  useEffect(() => {
+    const container = scrollContainerRef.current
+    if (!container) return
+
+    const updateScrollState = () => {
+      const { scrollTop, scrollHeight, clientHeight } = container
+      const canScrollUp = scrollTop > 0
+      const canScrollDown = scrollTop < scrollHeight - clientHeight
+      const scrollPercentage = scrollHeight > clientHeight ? (scrollTop / (scrollHeight - clientHeight)) * 100 : 0
+
+      setScrollState({
+        canScrollUp,
+        canScrollDown,
+        scrollPercentage,
+      })
+    }
+
+    // 초기 상태 설정
+    updateScrollState()
+
+    // 스크롤 이벤트 리스너 추가
+    container.addEventListener('scroll', updateScrollState)
+
+    // ResizeObserver로 컨텐츠 크기 변화 감지
+    const resizeObserver = new ResizeObserver(updateScrollState)
+    resizeObserver.observe(container)
+
+    return () => {
+      container.removeEventListener('scroll', updateScrollState)
+      resizeObserver.disconnect()
+    }
+  }, [scrollContainerRef])
+
+  return (
+    <>
+      {/* 상단 그라데이션 오버레이 */}
+      {scrollState.canScrollUp && (
+        <div className='absolute top-0 left-0 right-0 h-8 bg-gradient-to-b from-black/60 to-transparent pointer-events-none z-10 rounded-t-lg'>
+          <div className='absolute top-2 left-1/2 transform -translate-x-1/2 text-white/60 text-xs animate-bounce'>
+            ↑ 위로 스크롤
+          </div>
+        </div>
+      )}
+
+      {/* 하단 그라데이션 오버레이 */}
+      {scrollState.canScrollDown && (
+        <div className='absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-black/60 to-transparent pointer-events-none z-10 rounded-b-lg'>
+          <div className='absolute bottom-2 left-1/2 transform -translate-x-1/2 text-white/60 text-xs animate-bounce'>
+            ↓ 아래로 스크롤
+          </div>
+        </div>
+      )}
+
+      {/* 사이드 스크롤바 인디케이터 */}
+      {(scrollState.canScrollUp || scrollState.canScrollDown) && (
+        <div className='absolute right-2 top-4 bottom-4 w-1 bg-gray-700/50 rounded-full'>
+          <div
+            className='w-full bg-blue-500 rounded-full transition-all duration-300'
+            style={{
+              height: '20%',
+              transform: `translateY(${scrollState.scrollPercentage * 4}%)`,
+            }}
+          />
+        </div>
+      )}
+
+      {/* 전체 진행률 표시 */}
+      {(scrollState.canScrollUp || scrollState.canScrollDown) && (
+        <div className='absolute top-2 right-8 text-xs text-white/60'>{Math.round(scrollState.scrollPercentage)}%</div>
+      )}
+    </>
+  )
+}
+
+// 필터 단계 컴포넌트 - 로딩 제거
+function FilterStep({ step, options, selected, onSelect, filterType, stepRef }) {
   const stepNames = {
     형태: '형태',
     재질_분류: '재질',
@@ -68,27 +150,13 @@ function FilterStep({ step, options, selected, onSelect, filterType, loadingFilt
     용도: '용도',
   }
 
-  const isLoading = loadingFilters.has(filterType)
-  const isAnyLoading = loadingFilters.size > 0
-
   return (
     <div
-      className={`p-4 border rounded-lg transition-all duration-300 snap-start relative ${
-        selected ? ' border-green-50' : ' border-white'
-      } ${isAnyLoading && !isLoading ? 'opacity-50' : ''}`}
+      ref={stepRef}
+      className='p-4 bg-gray-900/50 backdrop-blur-sm rounded-lg border border-gray-700 transition-all duration-300 snap-start'
     >
-      {/* 로딩 오버레이 */}
-      {isLoading && (
-        <div className='absolute inset-0 bg-black/80 backdrop-blur-sm rounded-lg flex items-center justify-center z-10'>
-          <div className='flex flex-col items-center gap-3'>
-            <LoadingSpinner />
-            <span className='text-white text-sm'>필터링 중...</span>
-          </div>
-        </div>
-      )}
-
-      <h3 className={`text-lg font-semibold mb-3 text-white`}>
-        {selected ? `✔` : `➤`} {step + 1}. {stepNames[filterType]} 필터링
+      <h3 className='text-lg font-semibold mb-3 text-white'>
+        {step + 1}. {stepNames[filterType]} 필터링
       </h3>
       <div className='h-fit'>
         <div className='space-y-2'>
@@ -96,18 +164,13 @@ function FilterStep({ step, options, selected, onSelect, filterType, loadingFilt
             <button
               key={option}
               onClick={() => onSelect(option)}
-              disabled={isAnyLoading}
-              className={`w-full flex flex-row justify-between items-center text-left px-3 py-2 transition-colors duration-200 text-sm ${
-                isAnyLoading ? 'opacity-50 cursor-not-allowed' : 'hover:bg-white/10'
-              }`}
+              className='w-full flex flex-row justify-between items-center text-left px-3 py-2 transition-colors duration-200 text-sm hover:bg-white/10'
             >
               {option}
-
               <input
                 type='checkbox'
                 checked={selected === option}
                 onChange={() => onSelect(option)}
-                disabled={isAnyLoading}
                 className='ml-2 h-4 w-4 accent-blue-500'
               />
             </button>
@@ -115,7 +178,7 @@ function FilterStep({ step, options, selected, onSelect, filterType, loadingFilt
         </div>
       </div>
       {selected && (
-        <div className='mt-3 p-2 bg-gray-100 rounded text-xs text-gray-600'>
+        <div className='mt-3 p-2 bg-green-100 rounded text-xs text-green-800'>
           선택됨: <span className='font-medium'>{selected}</span>
         </div>
       )}
@@ -129,25 +192,9 @@ function AIGenerationSection({ selectedFilters, loadingFilters }) {
 
   // AI 로딩 모션 컴포넌트 - 3D 구체 애니메이션
   const AILoadingMotion = () => (
-    <div className='flex flex-col items-center justify-center h-48 gap-4'>
+    <div className='flex flex-col items-center justify-center h-fit gap-4'>
       <div className='relative'>
-        {/* 3D AI 비주얼 애니메이션 */}
-        <div className='ai-visual-container'>
-          <div className='ai-visual c1 ani'>
-            <div className='ai-box'>
-              {[...Array(15)].map((_, i) => (
-                <div
-                  key={i}
-                  className='ai-circle'
-                  style={{
-                    animationDelay: `${i * 0.05}s`,
-                    opacity: i * 0.04 + 0.1,
-                  }}
-                />
-              ))}
-            </div>
-          </div>
-        </div>
+        <Loading />
       </div>
 
       <div className='text-center'>
@@ -164,11 +211,6 @@ function AIGenerationSection({ selectedFilters, loadingFilters }) {
           )}
         </div>
       </div>
-
-      {/* 진행 바 */}
-      <div className='w-48 h-1 bg-gray-700 rounded-full overflow-hidden'>
-        <div className='h-full bg-gradient-to-r from-blue-500 to-purple-500 rounded-full animate-pulse'></div>
-      </div>
     </div>
   )
 
@@ -184,12 +226,13 @@ function AIGenerationSection({ selectedFilters, loadingFilters }) {
     const isCurrentlyLoading = loadingFilters.has(filterType)
 
     return (
-      <div
+      <motion.div
         className={`w-full h-fit transform transition-all duration-500 ${isCurrentlyLoading ? 'opacity-50' : ''}`}
-        style={{
-          animationDelay: `${index * 0.2}s`,
-          animation: 'fadeInUp 0.6s ease-out forwards',
-        }}
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: 20 }}
+        transition={{ duration: 0.5, delay: index * 0.2 }}
+        key={filterType}
       >
         <div className='flex items-center gap-3 text-xs mb-3'>
           <span className='text-white font-medium'>{stepNames[filterType]}</span>
@@ -205,22 +248,22 @@ function AIGenerationSection({ selectedFilters, loadingFilters }) {
             isCurrentlyLoading ? 'border border-blue-500/50' : 'border border-green-500/50'
           }`}
         >
-          <div className='w-full h-32 flex items-center justify-center'>
+          <div className='w-full h-auto aspect-square flex items-center justify-center'>
             <div className='text-center'>
               {isCurrentlyLoading ? (
                 <span className='text-blue-400'>처리 중...</span>
               ) : (
-                <span className='text-green-400'>✓ {value}</span>
+                <span className='text-green-400'>{value}</span>
               )}
             </div>
           </div>
         </div>
-      </div>
+      </motion.div>
     )
   }
 
   return (
-    <div className='w-full p-6 bg-gray-900/50 backdrop-blur-sm rounded-lg border border-gray-700'>
+    <div className='w-full p-4 bg-gray-900/50 backdrop-blur-sm rounded-lg border border-gray-700'>
       <h2 className='text-xl font-medium text-white mb-6 flex items-center gap-3'>
         <div className='w-3 h-3 bg-white rounded-full animate-pulse'></div>
         Layers
@@ -253,7 +296,7 @@ function AIGenerationSection({ selectedFilters, loadingFilters }) {
           )}
 
           {/* 완료된 레이어들 */}
-          <div className='flex flex-row w-full h-fit gap-4'>
+          <div className='grid grid-cols-4 gap-4'>
             {Object.entries(selectedFilters).map(
               ([filterType, value], index) =>
                 value && <CompletedLayer key={filterType} filterType={filterType} value={value} index={index} />,
@@ -261,82 +304,6 @@ function AIGenerationSection({ selectedFilters, loadingFilters }) {
           </div>
         </>
       )}
-
-      <style jsx>{`
-        @keyframes fadeInUp {
-          from {
-            opacity: 0;
-            transform: translateY(20px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-
-        /* 3D AI 비주얼 애니메이션 스타일 */
-        .ai-visual-container {
-          width: 100px;
-          height: 100px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          perspective: 1000px;
-        }
-
-        .ai-visual {
-          position: relative;
-          width: 100px;
-          height: 100px;
-          transform-style: preserve-3d;
-        }
-
-        .ai-box {
-          position: relative;
-          width: 100%;
-          height: 100%;
-          animation: ai-box-rotate 5s linear infinite;
-        }
-
-        .ai-circle {
-          position: absolute;
-          width: 100%;
-          height: 100%;
-          border: 1px solid #0ff;
-          border-radius: 115% 140% 145% 110%/125% 140% 110% 125%;
-          animation: ai-circle-move 1s linear infinite alternate;
-        }
-
-        .ai-circle:nth-child(odd) {
-          border-color: #f0f;
-        }
-
-        .ai-circle:nth-child(3n) {
-          border-color: #0f0;
-        }
-
-        .ai-circle:nth-child(5n) {
-          border-color: #ff0;
-        }
-
-        @keyframes ai-box-rotate {
-          to {
-            transform: rotateZ(360deg);
-          }
-        }
-
-        @keyframes ai-circle-move {
-          0% {
-            transform: rotateX(0deg) rotateY(0deg);
-          }
-          25% {
-            transform: rotateX(0deg) rotateY(25deg);
-          }
-          100% {
-            transform: rotateX(25deg) rotateY(0deg);
-          }
-        }
-      `}</style>
     </div>
   )
 }
@@ -359,11 +326,22 @@ export default function Page() {
     용도: null,
   })
 
-  // 로딩 상태 관리 - 여러 필터 동시 로딩 지원
+  // 로딩 상태 관리 - AI 레이어에서만 사용
   const [loadingFilters, setLoadingFilters] = useState(new Set())
 
   //생성하기 클릭시 생성되는 모달
   const [showGenerateModal, setShowGenerateModal] = useState(false)
+
+  // 각 필터 단계의 ref 생성
+  const filterStepRefs = useRef({
+    형태: null,
+    재질_분류: null,
+    시대: null,
+    용도: null,
+  })
+
+  // 필터 패널 컨테이너 ref
+  const filterPanelRef = useRef(null)
 
   // 누적 필터링된 아티팩트 계산 (모든 선택된 조건을 만족하는 것들만)
   const filteredArtifacts = useMemo(() => {
@@ -385,28 +363,58 @@ export default function Page() {
     })
   }, [artifacts, selectedFilters])
 
-  // 필터 선택 핸들러 - 다중 로딩 지원
+  // 다음 단계로 스크롤하는 함수
+  const scrollToNextStep = (currentFilterType) => {
+    const filterOrder = ['형태', '재질_분류', '시대', '용도']
+    const currentIndex = filterOrder.indexOf(currentFilterType)
+    const nextIndex = currentIndex + 1
+
+    if (nextIndex < filterOrder.length) {
+      const nextFilterType = filterOrder[nextIndex]
+      const nextStepRef = filterStepRefs.current[nextFilterType]
+
+      if (nextStepRef && filterPanelRef.current) {
+        // 스크롤을 부드럽게 다음 단계로 이동
+        setTimeout(() => {
+          nextStepRef.scrollIntoView({
+            behavior: 'smooth',
+            block: 'start',
+            inline: 'nearest',
+          })
+        }, 300) // 딜레이 단축
+      }
+    }
+  }
+
+  // 필터 선택 핸들러 - 즉시 반응, AI 레이어에서만 로딩
   const handleFilterSelect = (filterType, value) => {
-    // 해당 필터가 이미 로딩 중이면 무시
-    if (loadingFilters.has(filterType)) return
+    // 이전에 선택되지 않았던 필터를 선택하는 경우에만 다음 단계로 스크롤
+    const wasNotSelected = !selectedFilters[filterType]
+    const isSelecting = selectedFilters[filterType] !== value
 
-    // 로딩 시작
-    setLoadingFilters((prev) => new Set([...Array.from(prev), filterType]))
-
-    // 필터 업데이트
+    // 필터 즉시 업데이트 (로딩 없음)
     setSelectedFilters((prev) => ({
       ...prev,
       [filterType]: prev[filterType] === value ? null : value,
     }))
 
-    // 개별 필터 로딩 종료
-    setTimeout(() => {
-      setLoadingFilters((prev) => {
-        const newSet = new Set(prev)
-        newSet.delete(filterType)
-        return newSet
-      })
-    }, 1500)
+    // 새로 선택하는 경우에만 다음 단계로 스크롤
+    if (wasNotSelected && isSelecting) {
+      scrollToNextStep(filterType)
+    }
+
+    // AI 레이어에서만 로딩 시뮬레이션
+    if (selectedFilters[filterType] !== value) {
+      setLoadingFilters((prev) => new Set([...Array.from(prev), filterType]))
+
+      setTimeout(() => {
+        setLoadingFilters((prev) => {
+          const newSet = new Set(prev)
+          newSet.delete(filterType)
+          return newSet
+        })
+      }, 1500)
+    }
   }
 
   // 결과 페이지로 이동
@@ -423,6 +431,18 @@ export default function Page() {
       용도: null,
     })
     setLoadingFilters(new Set())
+
+    // 첫 번째 필터로 스크롤
+    const firstStepRef = filterStepRefs.current['형태']
+    if (firstStepRef && filterPanelRef.current) {
+      setTimeout(() => {
+        firstStepRef.scrollIntoView({
+          behavior: 'smooth',
+          block: 'start',
+          inline: 'nearest',
+        })
+      }, 100)
+    }
   }
 
   // 진행률 계산
@@ -430,20 +450,20 @@ export default function Page() {
   const progress = (selectedCount / 4) * 100
 
   // 생성하기 버튼 활성화 조건
-  const canGenerate = selectedCount > 0 && loadingFilters.size === 0
+  const canGenerate = selectedCount > 0
 
   return (
-    <section className='flex h-screen w-screen flex-col items-center justify-start gap-6 bg-black p-6'>
+    <section className='h-screen w-screen bg-black p-6 flex flex-col gap-6'>
       {/* Header */}
-      <header className='w-full flex items-center justify-between gap-6 px-6 h-24'>
+      <header className='flex flex-row items-center justify-between p-6 bg-gray-900/50 backdrop-blur-sm rounded-lg border border-gray-700'>
         {/* Logo */}
         <div className='flex h-full w-fit flex-col items-start justify-center gap-1'>
-          <Icon icon='nmkwhite' size={180} className='' />
-          <span className='size-fit text-nowrap text-4xl font-medium text-white'>눈으로 보는 유물의 길</span>
+          <Icon icon='nmkwhite' size={120} className='' />
+          <span className='text-2xl font-medium text-white'>눈으로 보는 유물의 길</span>
         </div>
 
-        {/* Step Progress */}
-        <div className='flex h-full w-full flex-col items-end justify-center gap-2'>
+        {/* Search Bar */}
+        <div className='flex-1 max-w-2xl flex h-full w-full flex-col items-end justify-center gap-2'>
           <div className='flex space-x-2'>
             {[0, 1, 2, 3].map((step) => (
               <div
@@ -456,7 +476,6 @@ export default function Page() {
           </div>
           <div className='text-white text-sm'>
             진행률: {progress.toFixed(0)}% | {filteredArtifacts.length}개 유물 발견
-            {loadingFilters.size > 0 && <span className='ml-2 text-blue-300'>({loadingFilters.size}개 처리 중)</span>}
           </div>
           <div className='w-48 h-2 bg-gray-700 rounded-full overflow-hidden'>
             <div
@@ -467,13 +486,13 @@ export default function Page() {
         </div>
       </header>
 
-      <div className='w-full flex flex-row gap-6 px-6 pb-6 min-h-0'>
+      <div className='w-full flex flex-row gap-6 min-h-0'>
         {/* 3D View */}
         <div className='flex-1 flex flex-col gap-6 min-h-0'>
           <Foo className='flex-1 min-h-0' artifacts={artifacts} selectedFilters={selectedFilters} />
 
           {/* Info Bar with Generation Button */}
-          <div className='flex h-24 w-full flex-row items-center justify-between gap-4 bg-white/10 backdrop-blur-sm rounded-lg p-4'>
+          <div className='flex h-24 w-full flex-row items-center justify-between gap-4  p-4 bg-gray-900/50 backdrop-blur-sm rounded-lg border border-gray-700'>
             <div className='text-white'>
               <h3 className='text-lg font-semibold'>필터링 결과</h3>
               <p className='text-sm opacity-80'>
@@ -484,12 +503,7 @@ export default function Page() {
             <div className='flex gap-3'>
               <button
                 onClick={resetFilters}
-                disabled={loadingFilters.size > 0}
-                className={`px-4 py-2 rounded-lg transition-colors duration-200 ${
-                  loadingFilters.size > 0
-                    ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
-                    : 'bg-red-500 text-white hover:bg-red-600'
-                }`}
+                className='px-4 py-2 rounded-lg transition-colors duration-200 bg-red-500 text-white hover:bg-red-600'
               >
                 필터 초기화
               </button>
@@ -503,27 +517,20 @@ export default function Page() {
                     : 'bg-gray-600 text-gray-400 cursor-not-allowed'
                 }`}
               >
-                {loadingFilters.size > 0 ? (
-                  <div className='flex items-center gap-2'>
-                    <LoadingSpinner />
-                    처리 중...
-                  </div>
-                ) : (
-                  `생성하기`
-                )}
+                생성하기
               </button>
             </div>
           </div>
         </div>
 
         {/* Filter Panel */}
-        <aside className='w-2/5 max-w-md flex flex-col gap-4 overflow-y-auto'>
+        <aside className='w-2/5 max-w-md flex flex-col gap-4 overflow-hidden'>
           {/* AI 이미지 생성 섹션 */}
           <AIGenerationSection selectedFilters={selectedFilters} loadingFilters={loadingFilters} />
 
           {/* 선택된 필터들 요약 */}
           {Object.entries(selectedFilters).some(([_, value]) => value) && (
-            <div className='w-full mb-4 p-4 border rounded-lg bg-gray-900/30'>
+            <div className='w-full mb-4 p-4  bg-gray-900/50 backdrop-blur-sm rounded-lg border border-gray-700'>
               <h3 className='font-semibold text-white mb-2'>선택된 필터:</h3>
               <div className='flex flex-wrap gap-4'>
                 {Object.entries(selectedFilters).map(
@@ -531,14 +538,7 @@ export default function Page() {
                     value && (
                       <div key={key} className='w-fit h-fit flex justify-center items-center gap-2'>
                         <span className='text-sm text-white/70'>{key === '재질_분류' ? '재질' : key}:</span>
-                        <span
-                          className={`font-medium text-sm ${
-                            loadingFilters.has(key) ? 'text-blue-400' : 'text-green-400'
-                          }`}
-                        >
-                          {value}
-                          {loadingFilters.has(key) && <span className='ml-1'>⏳</span>}
-                        </span>
+                        <span className='font-medium text-sm text-green-400'>{value}</span>
                       </div>
                     ),
                 )}
@@ -546,19 +546,31 @@ export default function Page() {
             </div>
           )}
 
-          {/* 기존 필터 단계들 */}
-          <div className='w-full h-full overflow-y-scroll snap-y rounded-lg flex flex-col justify-start gap-4'>
-            {['형태', '재질_분류', '시대', '용도'].map((filterType, index) => (
-              <FilterStep
-                key={filterType}
-                step={index}
-                filterType={filterType}
-                options={filterOptions[filterType]}
-                selected={selectedFilters[filterType]}
-                onSelect={(value) => handleFilterSelect(filterType, value)}
-                loadingFilters={loadingFilters}
-              />
-            ))}
+          {/* 필터 단계들 - 스크롤 인디케이터 추가 */}
+          <div className='relative flex-1 overflow-hidden rounded-lg'>
+            <ScrollIndicator scrollContainerRef={filterPanelRef} />
+            <div
+              ref={filterPanelRef}
+              className='w-full h-full overflow-y-scroll snap-y flex flex-col justify-start gap-4 p-1'
+              style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+            >
+              {['형태', '재질_분류', '시대', '용도'].map((filterType, index) => (
+                <FilterStep
+                  key={filterType}
+                  step={index}
+                  filterType={filterType}
+                  options={filterOptions[filterType]}
+                  selected={selectedFilters[filterType]}
+                  onSelect={(value) => handleFilterSelect(filterType, value)}
+                  stepRef={(el) => (filterStepRefs.current[filterType] = el)}
+                />
+              ))}
+            </div>
+            <style jsx>{`
+              div::-webkit-scrollbar {
+                display: none;
+              }
+            `}</style>
           </div>
         </aside>
       </div>
