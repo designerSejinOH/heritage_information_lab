@@ -2,9 +2,9 @@
 
 import React, { useState, useRef, useMemo, useEffect } from 'react'
 import { Canvas, useFrame, useThree, extend } from '@react-three/fiber'
-import { OrbitControls, Text, Html } from '@react-three/drei'
+import { OrbitControls, Text, Html, Plane } from '@react-three/drei'
 import * as THREE from 'three'
-import { list } from './list' // list.ts 파일에서 데이터 import
+import { list } from './list'
 
 // 실제 유물 데이터 (전체 데이터 사용)
 const artifactData = list
@@ -15,7 +15,7 @@ const extractCategories = (data) => {
     //@ts-ignore
     형태: [...new Set(data.map((item) => item.형태))],
     //@ts-ignore
-    재질_분류: [...new Set(data.map((item) => item.재질_분류))],
+    재질: [...new Set(data.map((item) => item.재질))],
     //@ts-ignore
     시대: [...new Set(data.map((item) => item.시대))],
     //@ts-ignore
@@ -24,8 +24,8 @@ const extractCategories = (data) => {
 }
 
 const layerColors = ['#ff6b35', '#4ecdc4', '#45b7d1', '#f9ca24']
-const layerNames = ['형태', '재질_분류', '시대', '용도']
-const layerKeys = ['형태', '재질_분류', '시대', '용도']
+const layerNames = ['형태', '재질', '시대', '용도']
+const layerKeys = ['형태', '재질', '시대', '용도']
 
 // 색상 매핑 함수
 function getColorForCategory(layerIndex, categoryValue, categories) {
@@ -47,10 +47,6 @@ function Layer({ index, visible, name, color, categories }) {
   return (
     <group visible={visible}>
       {/* 레이어 배경 */}
-      <mesh ref={layerRef} position={[0, 0, layerZ]}>
-        <planeGeometry args={[20, 15]} />
-        <meshBasicMaterial color={color} transparent opacity={0.05} side={THREE.DoubleSide} />
-      </mesh>
 
       {/* 레이어 테두리 */}
       <lineSegments position={[0, 0, layerZ]}>
@@ -60,7 +56,7 @@ function Layer({ index, visible, name, color, categories }) {
 
       {/* 레이어 라벨 */}
       <Text position={[0, 8, layerZ]} fontSize={1.2} color={color} anchorX='center' anchorY='middle'>
-        Layer {index}: {name}
+        {name}
       </Text>
 
       {/* 카테고리 허브들 */}
@@ -90,10 +86,16 @@ function CategoryHubs({ layerIndex, layerZ, color, categories }) {
 
         return (
           <group key={category} position={[x, y, layerZ]}>
-            <mesh>
-              <sphereGeometry args={[0.4, 16, 16]} />
-              <meshLambertMaterial color={categoryColor} transparent opacity={0.8} />
-            </mesh>
+            <Plane args={[1.2, 1.2]} position={[0, 0, 0]} rotation={[0, 0, 0]}>
+              <meshStandardMaterial
+                wireframe
+                color={categoryColor}
+                transparent={true}
+                opacity={0.8}
+                side={THREE.DoubleSide}
+              />
+            </Plane>
+
             <Text position={[0, 0.8, 0]} fontSize={0.25} color='white' anchorX='center' anchorY='middle' maxWidth={2}>
               {category}
             </Text>
@@ -147,7 +149,7 @@ function Artifact({ data, onClick, index, categories, pathCurve }) {
     <group ref={groupRef}>
       {/* 유물 정사각형 평면 */}
       <mesh ref={meshRef} onClick={() => onClick(data)}>
-        <planeGeometry args={[0.8, 0.8]} />
+        <planeGeometry args={[0.2, 0.2]} />
         <meshLambertMaterial
           map={textureMap}
           color={textureMap ? '#ffffff' : artifactColor}
@@ -177,7 +179,7 @@ function ArtifactPath({ pathCurve, color }) {
           itemSize={3}
         />
       </bufferGeometry>
-      <lineBasicMaterial color={color} transparent opacity={0.3} linewidth={1} />
+      <lineBasicMaterial color={color} transparent opacity={0.3} linewidth={0.5} />
     </line>
   )
 }
@@ -216,7 +218,7 @@ function Scene({ layerVisibility, onArtifactClick, categories }) {
       return {
         curve: new THREE.CatmullRomCurve3(positions),
         color: getColorForCategory(0, data.형태, categories),
-        id: data.id,
+        id: data.번호,
       }
     })
   }, [categories])
@@ -247,7 +249,7 @@ function Scene({ layerVisibility, onArtifactClick, categories }) {
       {/* 유물들 */}
       {artifactData.map((data, index) => (
         <Artifact
-          key={data.id}
+          key={data.번호}
           data={data}
           index={index}
           onClick={onArtifactClick}
@@ -297,14 +299,12 @@ function Controls({ layerVisibility, setLayerVisibility }) {
 // 범례 컴포넌트
 function Legend({ categories }) {
   return (
-    <div className='absolute top-5 right-5 z-50 bg-black bg-opacity-90 p-4 rounded-lg border border-gray-600'>
+    <div className='absolute top-0 w-48 right-0 z-50 bg-black bg-opacity-90 p-6'>
       <h3 className='text-white text-sm font-bold mb-3 mt-0'>범례</h3>
       {layerNames.map((name, index) => (
         <div key={index} className='flex items-center gap-2 mb-1'>
           <div className='w-4 h-4 rounded' style={{ backgroundColor: layerColors[index] }}></div>
-          <span className='text-white text-xs'>
-            Layer {index}: {name}
-          </span>
+          <span className='text-white text-xs'>{name}</span>
         </div>
       ))}
       <div className='mt-3 pt-3 border-t border-gray-600'>
@@ -401,17 +401,17 @@ export default function ArtifactVisualization() {
   }
 
   return (
-    <div className='w-full h-screen bg-gradient-to-b from-gray-900 to-black relative overflow-hidden'>
+    <div className='w-full h-screen bg-black relative overflow-hidden'>
       <Canvas camera={{ position: [0, 8, 25], fov: 75 }} shadows className='w-full h-full'>
         <Scene layerVisibility={layerVisibility} onArtifactClick={handleArtifactClick} categories={categories} />
       </Canvas>
 
-      <Controls layerVisibility={layerVisibility} setLayerVisibility={setLayerVisibility} />
+      {/* <Controls layerVisibility={layerVisibility} setLayerVisibility={setLayerVisibility} /> */}
 
       <Legend categories={categories} />
-      <InfoPanel />
+      {/* <InfoPanel /> */}
 
-      <ArtifactDetail artifact={selectedArtifact} onClose={closeArtifactDetail} />
+      {/* <ArtifactDetail artifact={selectedArtifact} onClose={closeArtifactDetail} /> */}
     </div>
   )
 }
