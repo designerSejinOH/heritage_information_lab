@@ -6,12 +6,16 @@ import { Swiper, SwiperSlide } from 'swiper/react'
 
 // Import Swiper styles
 import 'swiper/css'
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import dynamic from 'next/dynamic'
+import { motion } from 'framer-motion'
+
+import { list } from './list'
 
 // 필터 옵션들
 const filterOptions = {
   형태: ['원형', '원기둥형', '삼각형', '사각형', '인물형', '기하학형', '동물형'],
-  재질_분류: ['금속', '흙', '도자기', '돌', '옥/유리', '지류', '나무', '칠기', '복합재질', '합성재질'],
+  재질: ['금속', '흙', '도자기', '돌', '옥/유리', '지류', '나무', '칠기', '복합재질', '합성재질'],
   시대: [
     '구석기',
     '신석기',
@@ -56,7 +60,7 @@ export default function Page() {
   const [currentStep, setCurrentStep] = useState(0)
   const [selectedFilters, setSelectedFilters] = useState({
     형태: null,
-    재질_분류: null,
+    재질: null,
     시대: null,
     용도: null,
   })
@@ -67,6 +71,10 @@ export default function Page() {
   const [isGenerating, setIsGenerating] = useState(false)
   const [generationComplete, setGenerationComplete] = useState(false)
 
+  // 새로 추가된 상태들
+  const [isLoading, setIsLoading] = useState(false)
+  const [showGeneratedContent, setShowGeneratedContent] = useState(false)
+
   // 진행률 계산
   const selectedCount = Object.values(selectedFilters).filter((v) => v !== null).length
   const progress = (selectedCount / 4) * 100
@@ -74,11 +82,25 @@ export default function Page() {
   // 현재 단계의 필터 키
   const currentFilterKey = filterKeys[currentStep]
 
+  // **수정: currentActiveOption 초기값 설정**
+  // 현재 단계가 변경될 때 이미 선택된 옵션이 있다면 설정
+  useEffect(() => {
+    const currentSelected = selectedFilters[currentFilterKey]
+    if (currentSelected && currentActiveOption !== currentSelected) {
+      setCurrentActiveOption(currentSelected)
+    } else if (!currentSelected && currentActiveOption) {
+      // 현재 단계에 선택된 값이 없으면 null로 설정
+      setCurrentActiveOption(null)
+    }
+  }, [currentStep, currentFilterKey, selectedFilters])
+
   // 선택 완료 처리
   const handleSelectComplete = () => {
     if (!currentActiveOption) return
 
-    setIsSelecting(true)
+    // 로딩 상태 시작
+    setIsLoading(true)
+    setShowGeneratedContent(false)
 
     // 현재 선택된 옵션을 필터 상태에 저장
     setSelectedFilters((prev) => ({
@@ -86,19 +108,30 @@ export default function Page() {
       [currentFilterKey]: currentActiveOption,
     }))
 
-    // 모션 효과 후 다음 단계 버튼 표시
+    // 로딩 모션 시뮬레이션 (1.5초)
     setTimeout(() => {
-      setShowNextButton(true)
-    }, 1000)
+      setIsLoading(false)
+      setShowGeneratedContent(true)
+      setIsSelecting(true)
+
+      // 생성된 콘텐츠 표시 후 다음 단계 버튼 표시 (0.5초 후)
+      setTimeout(() => {
+        setShowNextButton(true)
+      }, 500)
+    }, 1500)
   }
 
   // 다음 단계로 이동
   const handleNextStep = () => {
     if (currentStep < 3) {
       setCurrentStep((prev) => prev + 1)
-      setCurrentActiveOption(null)
+      // **수정: 다음 단계의 이미 선택된 값이 있다면 설정, 없으면 null**
+      const nextFilterKey = filterKeys[currentStep + 1]
+      setCurrentActiveOption(selectedFilters[nextFilterKey] || null)
       setIsSelecting(false)
       setShowNextButton(false)
+      setShowGeneratedContent(false)
+      setIsLoading(false)
     } else {
       // 마지막 단계에서는 생성 모달 표시
       setShowModal(true)
@@ -118,6 +151,8 @@ export default function Page() {
     if (isSelecting || showNextButton) {
       setIsSelecting(false)
       setShowNextButton(false)
+      setShowGeneratedContent(false)
+      setIsLoading(false)
       // 현재 단계의 필터 값도 초기화
       setSelectedFilters((prev) => ({
         ...prev,
@@ -137,9 +172,13 @@ export default function Page() {
   const handlePrevStep = () => {
     if (currentStep > 0) {
       setCurrentStep((prev) => prev - 1)
-      setCurrentActiveOption(selectedFilters[filterKeys[currentStep - 1]])
+      // **수정: 이전 단계의 선택된 값으로 설정**
+      const prevFilterKey = filterKeys[currentStep - 1]
+      setCurrentActiveOption(selectedFilters[prevFilterKey] || null)
       setIsSelecting(false)
       setShowNextButton(false)
+      setShowGeneratedContent(false)
+      setIsLoading(false)
     }
   }
 
@@ -147,7 +186,7 @@ export default function Page() {
     <div className='relative flex h-screen w-screen flex-col items-center justify-between overflow-hidden gap-8'>
       <Header />
 
-      <div className='w-fit h-fit flex flex-col items-center justify-center gap-4 pt-10'>
+      <div className='w-fit h-[10vh] flex flex-col items-center justify-center gap-4 pt-10'>
         {/* 단계 표시 */}
         <div className='w-fit h-fit flex flex-row items-center justify-center bg-white rounded-full relative'>
           <div
@@ -177,22 +216,26 @@ export default function Page() {
         currentActiveOption={currentActiveOption}
         setCurrentActiveOption={setCurrentActiveOption}
         isSelecting={isSelecting}
-        selectedFilters={selectedFilters}
+        selectedFilters={selectedFilters} // **수정: 필터링 제거, 기본 selectedFilters만 전달**
         onSwiperReselect={handleSwiperReselect}
+        isLoading={isLoading}
+        showGeneratedContent={showGeneratedContent}
       />
 
       {/* 하단 버튼 영역 */}
-      <div className='w-fit min-w-[50vw] px-12 py-12 h-fit flex flex-col justify-center items-center p-4 gap-4 bg-white/10 rounded-lg mb-10'>
-        <div className='w-80 h-2 bg-white/20 rounded-full overflow-hidden'>
-          <div className='h-full bg-white transition-all duration-300' style={{ width: `${progress}%` }}></div>
-        </div>
-
-        <div className='w-full flex-1 h-full flex items-center justify-center text-white text-2xl font-bold'>
-          <div className='w-fit h-fit flex flex-row items-center justify-center gap-2'>
-            {isSelecting && (
+      <div className='w-fit min-w-[70vw] px-12 py-8 h-[24vh] flex flex-col justify-center items-center p-4 gap-4 bg-white/10 rounded-t-lg'>
+        <div className='w-full flex-1 h-fit flex items-center justify-center text-white text-2xl font-bold'>
+          <div className='w-60 h-12 flex flex-row items-center justify-center gap-2'>
+            {isLoading ? (
+              <div className='animate-pulse text-blue-400'>
+                <span>AI Generating...</span>
+              </div>
+            ) : isSelecting ? (
               <div className='animate-pulse'>
                 <span className='text-green-400'>✓</span> {currentActiveOption} 선택됨
               </div>
+            ) : (
+              <span className='text-gray-400'>{currentActiveOption || '없음'}</span>
             )}
           </div>
         </div>
@@ -210,12 +253,12 @@ export default function Page() {
 
           <button
             onClick={handleSelectComplete}
-            disabled={!currentActiveOption || isSelecting}
-            className={`w-60 h-fit flex justify-center items-center text-white text-4xl border border-white/50 rounded-lg px-4 py-2 transition-all duration-300 ${
-              !currentActiveOption || isSelecting ? 'opacity-50 cursor-not-allowed' : 'hover:bg-white/10'
+            disabled={!currentActiveOption || isSelecting || isLoading}
+            className={`w-60 h-fit flex justify-center items-center text-white text-3xl border border-white/50 rounded-lg px-4 py-2 transition-all duration-300 ${
+              !currentActiveOption || isSelecting || isLoading ? 'opacity-50 cursor-not-allowed' : 'hover:bg-white/10'
             }`}
           >
-            선택 완료
+            {isLoading ? '생성 중...' : '선택 완료'}
           </button>
 
           <button
@@ -226,6 +269,9 @@ export default function Page() {
           >
             {currentStep === 3 ? '생성하기' : '다음으로'}
           </button>
+        </div>
+        <div className='w-40 h-1 bg-white/20 overflow-hidden'>
+          <div className='h-full bg-white transition-all duration-300' style={{ width: `${progress}%` }}></div>
         </div>
       </div>
 
@@ -287,9 +333,14 @@ export default function Page() {
 
                 {/* Main 3D View */}
                 <div className='w-full flex flex-col gap-6 w-full h-full'>
-                  <div className='w-full h-full flex flex-row gap-6'>
-                    <main className='w-full h-full bg-gray-900/20 backdrop-blur-sm rounded-lg border border-gray-700 relative overflow-hidden'>
-                      이미지
+                  <div className='w-full h-[55%] flex flex-row gap-6'>
+                    <main className='w-auto h-full aspect-square bg-gray-900/20 backdrop-blur-sm rounded-lg border border-gray-700 relative overflow-hidden'>
+                      {/* 선택된 옵션 조합으로 되어있는 폴더에 이미지 접근 */}
+                      <img
+                        src={`/flow/${selectedFilters.형태}+${selectedFilters.재질}+${selectedFilters.시대}+${selectedFilters.용도}/result.jpeg`}
+                        alt='Generated Artifact'
+                        className='w-full h-full object-cover rounded-lg'
+                      />
                     </main>
 
                     {/* Right Panel */}
@@ -322,7 +373,7 @@ export default function Page() {
                       </div>
                     </aside>
                   </div>
-                  <div className='w-full h-2/5 flex flex-row items-center justify-between bg-gray-900/50 backdrop-blur-sm rounded-lg border border-gray-700 p-6'>
+                  <div className='w-full h-[30%] flex flex-row items-center justify-between bg-gray-900/50 backdrop-blur-sm rounded-lg border border-gray-700 p-6'>
                     {/* 더미 카드 좌우 스크롤 */}
                     <div className='w-[50vw] overflow-x-scroll flex items-center gap-4'>
                       {/* 카드 예시 */}
@@ -367,6 +418,8 @@ export default function Page() {
   )
 }
 
+const Foo = dynamic(() => import('./components/Foo').then((mod) => mod.Foo), { ssr: false })
+
 const StepSection = ({
   currentStep,
   currentFilterKey,
@@ -375,28 +428,84 @@ const StepSection = ({
   isSelecting,
   selectedFilters,
   onSwiperReselect,
+  isLoading,
+  showGeneratedContent,
 }) => {
+  const artifacts = list
+
   return (
-    <div className='w-full h-full flex flex-col items-center justify-between gap-10'>
+    <div className='w-full h-[70vh] flex flex-col items-center justify-between gap-10'>
       {/* 상단 컨텐츠 영역 */}
-      <div className='w-auto h-full aspect-square relative overflow-hidden border bg-white/10 rounded-lg flex items-center justify-center'>
-        <div
-          className={`text-white text-center transition-all duration-1000 ${
-            isSelecting ? 'scale-110 opacity-100' : 'scale-100 opacity-70'
-          }`}
-        >
-          <h2 className='text-2xl font-bold mb-4'>{currentFilterKey}</h2>
-          {currentActiveOption && (
-            <div
-              className={`text-xl transition-all duration-500 ${
-                isSelecting ? 'text-green-400 animate-pulse' : 'text-white'
-              }`}
-            >
-              {currentActiveOption}
+      <div className='w-auto h-full aspect-square relative overflow-hidden bg-white/10 rounded-lg flex items-center justify-center'>
+        {/* 로딩 상태 */}
+        {isLoading && (
+          <div className='text-white text-center'>
+            <div className='flex flex-col items-center gap-4'>
+              {/* AI 로딩 애니메이션 */}
+              <div className='relative'>
+                <div className='w-16 h-16 border-4 border-white/20 border-t-white rounded-full animate-spin'></div>
+                <div
+                  className='absolute inset-0 w-16 h-16 border-4 border-transparent border-l-blue-400 rounded-full animate-spin'
+                  style={{ animationDelay: '0.15s' }}
+                ></div>
+                <div
+                  className='absolute inset-0 w-16 h-16 border-4 border-transparent border-r-green-400 rounded-full animate-spin'
+                  style={{ animationDelay: '0.3s' }}
+                ></div>
+              </div>
+              <div className='text-lg font-bold animate-pulse'>Generating...</div>
+              <div className='text-sm text-gray-300 animate-pulse'>
+                {currentFilterKey}: {currentActiveOption}
+              </div>
             </div>
-          )}
-          {isSelecting && <div className='mt-4 text-sm text-green-400 animate-bounce'>선택 완료!</div>}
-        </div>
+          </div>
+        )}
+
+        {/* 생성된 콘텐츠 */}
+        {showGeneratedContent && (
+          <>
+            <motion.div
+              initial={{ opacity: 1 }}
+              animate={{ opacity: 0 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 3 }}
+              className='absolute z-10 bottom-4 left-1/2 -translate-x-1/2 w-fit  h-fit flex flex-col p-4 backdrop-blur-sm bg-black/20 rounded-lg flex items-center justify-center'
+            >
+              <h3 className='text-xl font-bold mb-2'>생성 완료!</h3>
+              <div className='text-sm opacity-80 text-nowrap'>AI가 생성한 {currentFilterKey} 결과입니다</div>
+            </motion.div>
+            <img
+              src={`/flow/${currentActiveOption}.jpeg`}
+              alt={currentActiveOption}
+              className='w-full h-full object-cover rounded-lg'
+            />
+          </>
+        )}
+
+        {/* 기본 상태 - Foo 컴포넌트 (필터링 없이 초기 상태만) */}
+        {!isLoading && !showGeneratedContent && (
+          <div
+            className={`w-full h-full text-white text-center transition-all duration-1000 ${
+              isSelecting ? 'scale-110 opacity-100' : 'scale-100 opacity-70'
+            }`}
+          >
+            {/* **수정: 필터링 제거, 초기 상태만 표시** */}
+            <Foo className='w-full h-full' artifacts={artifacts} selectedFilters={{}} />
+
+            {/* 현재 활성화된 옵션 */}
+            {currentActiveOption && (
+              <div className='absolute bottom-4 left-1/2 transform -translate-x-1/2 text-sm text-blue-400'>
+                현재 선택된 옵션: {currentActiveOption}
+              </div>
+            )}
+
+            {isSelecting && (
+              <div className='absolute bottom-4 left-1/2 transform -translate-x-1/2 text-sm text-green-400 animate-bounce'>
+                선택 완료!
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* 하단 스와이퍼 영역 */}
@@ -411,15 +520,29 @@ const StepSection = ({
           setActiveOption={setCurrentActiveOption}
           selectedOption={selectedFilters[currentFilterKey]}
           onSwiperReselect={onSwiperReselect}
+          currentActiveOption={currentActiveOption}
         />
       </div>
     </div>
   )
 }
 
-const ListSwiper = ({ items, setActiveOption, selectedOption, onSwiperReselect }) => {
+const ListSwiper = ({ items, setActiveOption, selectedOption, onSwiperReselect, currentActiveOption }) => {
   const [activeIndex, setActiveIndex] = useState(0)
   const swiperRef = useRef(null)
+
+  // **수정: currentActiveOption이 변경될 때 스와이퍼 인덱스 동기화**
+  useEffect(() => {
+    if (currentActiveOption && items) {
+      const optionIndex = items.findIndex((item) => item.text === currentActiveOption)
+      if (optionIndex !== -1 && optionIndex !== activeIndex) {
+        setActiveIndex(optionIndex)
+        if (swiperRef.current) {
+          swiperRef.current.slideToLoop(optionIndex, 500)
+        }
+      }
+    }
+  }, [currentActiveOption, items])
 
   const handleSlideClick = (index) => {
     if (swiperRef.current) {
@@ -454,7 +577,7 @@ const ListSwiper = ({ items, setActiveOption, selectedOption, onSwiperReselect }
 
   const onSlideChange = (swiper) => {
     setActiveIndex(swiper.realIndex)
-    if (setActiveOption) {
+    if (setActiveOption && items[swiper.realIndex]) {
       setActiveOption(items[swiper.realIndex].text)
     }
     // 선택 완료 후 스와이퍼 움직일 때 재선택 상태로 변경
@@ -482,7 +605,7 @@ const ListSwiper = ({ items, setActiveOption, selectedOption, onSwiperReselect }
         className='cursor-grab overflow-visible'
         wrapperClass='overflow-visible'
       >
-        {items.map((item, index) => (
+        {items?.map((item, index) => (
           <SwiperSlide
             key={`${item.id}-${index}`}
             onClick={() => handleSlideClick(index)}
