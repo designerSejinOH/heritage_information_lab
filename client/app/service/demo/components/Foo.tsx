@@ -152,7 +152,7 @@ function PointSystem({ artifacts, selectedFilters }) {
 export function Foo({ className, artifacts, selectedFilters }) {
   return (
     <div className={className}>
-      <Canvas camera={{ position: [0, 10, 0], fov: 30 }} shadows className='size-full'>
+      <Canvas camera={{ position: [0, 10, 0], fov: 60 }} shadows className='size-full'>
         <Suspense
           fallback={
             <Html center className='text-white text-lg'>

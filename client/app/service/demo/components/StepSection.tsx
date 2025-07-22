@@ -27,7 +27,7 @@ export const StepSection = ({
     <div className={classNames('w-full flex flex-col items-center justify-center gap-10', className)}>
       <StepIndicator className='w-fit h-fit' currentStep={currentStep} filterKeys={filterKeys} />
       <div
-        className={`w-auto h-full aspect-square relative overflow-hidden bg-white/10 rounded-lg flex items-center justify-center `}
+        className={`w-auto h-full aspect-square relative overflow-hidden bg-white/10 rounded-2xl flex items-center justify-center `}
       >
         {/* 로딩 상태 */}
         {isLoading && (

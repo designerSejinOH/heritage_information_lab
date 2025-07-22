@@ -6,7 +6,10 @@ import { Swiper, SwiperSlide } from 'swiper/react'
 // Import Swiper styles
 import 'swiper/css'
 
+import { TbCheck } from 'react-icons/tb'
+
 interface ListSwiperProps {
+  type: string
   className?: string
   items: { id: number; text: string }[]
   setActiveOption?: (option: string) => void
@@ -16,6 +19,7 @@ interface ListSwiperProps {
 }
 
 export const ListSwiper = ({
+  type,
   className = '',
   items,
   setActiveOption,
@@ -112,20 +116,20 @@ export const ListSwiper = ({
           >
             <div
               className={`
-              w-full aspect-video border h-full relative rounded-lg overflow-hidden
+              w-full aspect-[2/1] border-[1.5px] border-white bg-black text-white h-full relative rounded-2xl overflow-hidden
               cursor-pointer transition-all duration-500
+              p-6
+              hover:rounded-3xl hover:bg-white hover:text-black transition-all group
               ${index === activeIndex ? 'border-white border-2 shadow-lg' : 'border-gray-500'}
             `}
             >
-              <div className='w-full h-full flex items-center justify-center'>
-                <span className='text-white font-bold text-lg'>{item.text}</span>
+              <div className='flex flex-col items-start justify-center gap-3 w-full h-full'>
+                <span className=' font-medium opacity-70 text-base'>{type}</span>
+                <span className=' font-semibold text-2xl'>{item.text}</span>
               </div>
-              <span className='absolute top-2 left-2 z-10 text-white bg-black bg-opacity-50 px-2 py-1 rounded text-sm'>
-                {item.text}
-              </span>
               {item.text === selectedOption && (
-                <div className='absolute top-2 right-2 z-10 text-green-400 bg-black bg-opacity-50 px-2 py-1 rounded text-sm'>
-                  ✓
+                <div className='absolute bottom-4 right-4 z-10 w-auto h-fit p-1 aspect-square text-2xl flex items-center justify-center border-2 border-white group-hover:border-black text-white group-hover:text-black rounded-xl'>
+                  <TbCheck />
                 </div>
               )}
             </div>

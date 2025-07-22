@@ -28,7 +28,7 @@ export default function Page() {
         <div className='flex w-full h-1/3 flex-row items-end justify-between gap-4 p-12'>
           <div className='flex h-fit w-fit flex-row items-center justify-center gap-12 px-4'>
             <div className='w-fit h-fit flex flex-col items-start gap-2'>
-              <span className='text-base opacity-70 font-medium'></span>
+              <span className='text-base opacity-70 font-medium '></span>
               <Image
                 src='/img/전통대-워드타입B.png'
                 alt='한국전통문화대학교'

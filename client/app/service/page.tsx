@@ -30,7 +30,7 @@ export default function Page() {
           </div>
           <div className='flex flex-col justify-end p-16 h-fit pointer-events-auto'>
             <Button
-              preset='line'
+              preset='fill'
               icon='arrowRight'
               clickToPage='/service/demo'
               text='어떤 유물을 찾아볼까?'

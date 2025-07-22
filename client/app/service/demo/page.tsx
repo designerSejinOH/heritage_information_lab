@@ -136,16 +136,25 @@ export default function Page() {
 
   return (
     <div className='relative flex h-screen w-screen flex-col items-center justify-between overflow-hidden'>
-      <Header />
+      <Header>
+        <div className='w-[20vw] h-fit grid grid-cols-2 gap-4 bg-white/10 p-4 rounded-xl'>
+          {filterKeys.map((key) => (
+            <div key={key} className='w-full h-fit flex  items-center gap-2'>
+              <span className=' pr-4 text-sm font-medium text-white'>{key}</span>
+              <span className='text-sm text-gray-300'>{selectedFilters[key] || '-'}</span>
+            </div>
+          ))}
+        </div>
+      </Header>
       <Foo
-        className='absolute top-0 left-0 w-full h-full pointer-events-none inset-0 bg-black/10'
+        className='absolute top-0 left-0 w-full h-full pointer-events-none bg-black/10'
         artifacts={list}
         selectedFilters={{}}
       />
 
       {/* 상단 컨텐츠 영역 */}
       <StepSection
-        className='h-[65vh] checking p-6'
+        className='h-[64vh] p-6'
         filterKeys={filterKeys}
         currentStep={currentStep}
         currentFilterKey={currentFilterKey}
@@ -157,7 +166,8 @@ export default function Page() {
 
       {/* 하단 스와이퍼 영역 */}
       <ListSwiper
-        className='h-[21vh] checking p-6'
+        type={currentFilterKey}
+        className='h-[20vh] p-6'
         items={filterOptions[currentFilterKey]?.map((item, index) => ({
           id: index,
           text: item,
@@ -172,7 +182,7 @@ export default function Page() {
 
       {/* 하단 버튼 영역 */}
       <Controls
-        className='h-[14vh] checking p-6'
+        className='h-[16vh] p-6'
         isLoading={isLoading}
         isSelecting={isSelecting}
         currentActiveOption={currentActiveOption}
@@ -183,6 +193,10 @@ export default function Page() {
         showNextButton={showNextButton}
         progress={progress}
       />
+
+      <div className='fixed bottom-0 left-0 z-10 w-full h-1 bg-white/20 overflow-hidden'>
+        <div className='h-full bg-white transition-all duration-300' style={{ width: `${progress}%` }}></div>
+      </div>
 
       {/* 생성 모달 */}
       <SuccessModal
