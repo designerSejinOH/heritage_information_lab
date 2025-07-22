@@ -1,1 +1,7 @@
 export * from './Header'
+export * from './Foo'
+export * from './SuccessModal'
+export * from './StepSection'
+export * from './ListSwiper'
+export * from './Controls'
+export * from './StepIndicator'

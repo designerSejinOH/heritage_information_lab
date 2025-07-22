@@ -16,6 +16,7 @@ const Layout = ({ children, header = false }: LayoutProps) => {
   return (
     <div
       ref={ref}
+      className='bg-black text-white'
       style={{
         position: 'relative',
         width: ' 100%',

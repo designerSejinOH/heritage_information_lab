@@ -20,9 +20,14 @@ module.exports = {
       '8xl': '6rem', // 96px
       '9xl': '8rem', // 128px
     },
+    colors: {
+      transparent: 'transparent',
+      black: '#181716',
+      white: '#F5F3F4',
+    },
     extend: {
       fontFamily: {
-        pretendard: ['var(--font-pretendard)', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+        wantedSans: ['var(--font-wanted-sans)', 'sans-serif', 'system-ui'],
       },
       animation: {
         marquee: 'marquee var(--duration) linear infinite',

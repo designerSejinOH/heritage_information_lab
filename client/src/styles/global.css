@@ -8,8 +8,6 @@
     box-sizing: border-box;
   }
 
-
-
   div {
     white-space: pre-wrap;
   }
@@ -44,17 +42,20 @@
     border-style: dashed; */
   }
 
+  :lang(ko) {
+    /* 한글 폰트 설정 */
+    letter-spacing: -0.02em;
+  }
+
   #__next,
   html,
   body {
-    @apply font-pretendard;
+    @apply font-wantedSans;
 
     margin: 0;
     padding: 0;
     /* 16px */
     font-size: 100%;
-    background-color: black;
-    color: white;
     width: 100vw;
     height: 100dvh;
     overscroll-behavior: none;

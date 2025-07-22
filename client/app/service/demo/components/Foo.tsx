@@ -134,7 +134,14 @@ function PointSystem({ artifacts, selectedFilters }) {
       <ambientLight intensity={0.3} />
       <pointLight position={[10, 10, 10]} intensity={0.6} />
       <directionalLight position={[0, 10, 5]} intensity={0.5} />
-      <OrbitControls maxDistance={25} minDistance={3} enableZoom={false} autoRotate autoRotateSpeed={0.5} />
+      <OrbitControls
+        maxDistance={25}
+        minDistance={3}
+        enableZoom={false}
+        enableRotate={false}
+        autoRotate
+        autoRotateSpeed={0.5}
+      />
     </>
   )
 }
@@ -145,13 +152,7 @@ function PointSystem({ artifacts, selectedFilters }) {
 export function Foo({ className, artifacts, selectedFilters }) {
   return (
     <div className={className}>
-      <Canvas
-        camera={{ position: [0, 10, 0], fov: 60 }}
-        shadows
-        dpr={[1, 2]}
-        className='size-full'
-        style={{ background: '#000' }}
-      >
+      <Canvas camera={{ position: [0, 10, 0], fov: 30 }} shadows className='size-full'>
         <Suspense
           fallback={
             <Html center className='text-white text-lg'>
@@ -164,7 +165,7 @@ export function Foo({ className, artifacts, selectedFilters }) {
             <Bloom
               luminanceThreshold={0.1}
               luminanceSmoothing={0.1}
-              intensity={2}
+              intensity={0.5}
               mipmapBlur={true}
               kernelSize={KernelSize.LARGE}
             />

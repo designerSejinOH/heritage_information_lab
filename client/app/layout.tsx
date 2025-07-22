@@ -91,10 +91,21 @@ const pretendard = localFont({
   display: 'swap',
 })
 
+const wantedSans = localFont({
+  src: [
+    {
+      path: '../public/fonts/WantedSansVariable.woff2',
+      weight: '400 1000',
+    },
+  ],
+  variable: '--font-wanted-sans',
+  display: 'swap',
+})
+
 export default function RootLayout({ children }) {
   return (
-    <html lang='en' className='antialiased'>
-      <body className={`${pretendard.className}`}>
+    <html lang='ko' className='antialiased'>
+      <body className={`${pretendard.className} ${wantedSans.className}`}>
         <Layout>{children}</Layout>
         <GoogleTagManager gtmId={process.env.NEXT_PUBLIC_GTM_ID} />
         <GoogleAnalytics gaId={process.env.NEXT_PUBLIC_GA_ID} />
