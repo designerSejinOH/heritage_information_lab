@@ -109,19 +109,19 @@ export const SuccessModal = ({
                       <div className='flex flex-col gap-4 justify-start items-start'>
                         <div className='flex flex-col justify-start gap-2'>
                           <span className='opacity-50 text-base'>유물 명칭</span>
-                          <p className='w-full text-white break-keep text-lg font-semibold'>
+                          <p className='w-full text-white break-keep text-base font-semibold'>
                             {resultItem ? resultItem.명칭 : '생성된 유물이 없습니다.'}
                           </p>
                         </div>
                         <div className='flex flex-col justify-start gap-2'>
                           <span className='opacity-50 text-base'>유물 설명</span>
-                          <p className='w-full text-white break-keep text-lg'>
+                          <p className='w-full text-white break-keep text-base'>
                             {resultItem ? resultItem.description : '유물에 대한 설명이 없습니다.'}
                           </p>
                         </div>
                         <div className='flex flex-col justify-start gap-2'>
                           <span className='opacity-50 text-base'>유물 메타데이터</span>
-                          <ul className='w-full text-white text-lg'>
+                          <ul className='w-full text-white text-base'>
                             <li className='flex justify-start gap-4'>
                               <span className='opacity-70'>형태</span>
                               <span>{resultItem.형태}</span>
@@ -148,50 +148,62 @@ export const SuccessModal = ({
                     <div className='w-[70%] h-full flex flex-col items-start justify-start gap-3 '>
                       <div className='text-2xl w-full font-semibold py-3 text-white'>이런 유물을 추천드려요</div>
                       <div className='w-full h-full flex flex-row items-start justify-start gap-6'>
-                        {resultItem.recommended_items.map((item, index) => (
-                          <div
-                            className='w-1/3 h-full p-6 relative flex flex-col items-start justify-start gap-6 bg-black text-white rounded-3xl'
-                            key={index}
-                          >
-                            <div key={index} className='w-auto h-[14vh] aspect-square'>
-                              <img
-                                src={`/img/source/${item.image}`}
-                                alt={item.name}
-                                className='w-full h-full object-cover rounded-xl'
-                              />
+                        {resultItem.recommended_items.length ? (
+                          resultItem.recommended_items.map((item, index) => (
+                            <div
+                              className='w-1/3 h-full p-6 relative flex flex-col items-start justify-start gap-6 bg-black text-white rounded-3xl'
+                              key={index}
+                            >
+                              <div key={index} className='w-auto h-[14vh] aspect-square'>
+                                <img
+                                  src={`/img/source/${item.image}`}
+                                  alt={item.name}
+                                  className='w-full h-full object-cover rounded-xl'
+                                />
+                              </div>
+                              <span className='text-xl font-semibold break-keep'>{item.name}</span>
+                              <button className='absolute bottom-4 right-4 text-xl rounded-2xl text-white border-[1.5px] border-white flex items-center justify-center p-2 bg-black/20 hover:bg-white hover:text-black transition-colors'>
+                                <TbDots />
+                              </button>
                             </div>
-                            <span className='text-xl font-semibold break-keep'>{item.name}</span>
-                            <button className='absolute bottom-4 right-4 text-xl rounded-2xl text-white border-[1.5px] border-white flex items-center justify-center p-2 bg-black/20 hover:bg-white hover:text-black transition-colors'>
-                              <TbDots />
-                            </button>
+                          ))
+                        ) : (
+                          <div className='w-full h-full flex items-center justify-center bg-black text-white rounded-3xl text-lg'>
+                            추천할 수 있는 유물이 없습니다.
                           </div>
-                        ))}
+                        )}
                       </div>
                     </div>
                     {/* 관련 프로젝트 */}
                     <div className='flex-1 h-full flex flex-col items-start justify-start gap-3 '>
                       <div className='text-2xl w-full font-semibold py-3 text-white'>관련된 프로젝트 및 전시</div>
                       <div className='w-full h-full flex flex-row items-start justify-start gap-6'>
-                        {resultItem.related_projects.map((project, index) => (
-                          <div
-                            key={index}
-                            className='w-full relative h-full p-6 flex flex-row items-end justify-start gap-6 bg-black text-white rounded-3xl'
-                          >
-                            <div key={index} className='w-full h-full relative'>
-                              <img
-                                src={`/img/source/${project.image}`}
-                                alt={project.name}
-                                className='w-full h-full object-contain rounded-xl bg-white aspect-square'
-                              />
+                        {resultItem.related_projects.length ? (
+                          resultItem.related_projects.map((project, index) => (
+                            <div
+                              key={index}
+                              className='w-full relative h-full p-6 flex flex-col items-end justify-start gap-6 bg-black text-white rounded-3xl'
+                            >
+                              <div key={index} className='w-full h-[12vh] relative'>
+                                <img
+                                  src={`/img/source/${project.image}`}
+                                  alt={project.name}
+                                  className='w-full h-full object-contain rounded-xl bg-white aspect-square'
+                                />
+                              </div>
+                              <div className='w-full h-full text-white text-base font-semibold break-keep'>
+                                {project.name}
+                              </div>
+                              <button className='absolute bottom-4 right-4 text-xl rounded-2xl text-white border-[1.5px] border-white flex items-center justify-center p-2 bg-black/20 hover:bg-white hover:text-black transition-colors'>
+                                <TbArrowUpRight />
+                              </button>
                             </div>
-                            <div className='w-full h-full text-white text-xl font-semibold break-keep'>
-                              {project.name}
-                            </div>
-                            <button className='absolute bottom-4 right-4 text-xl rounded-2xl text-white border-[1.5px] border-white flex items-center justify-center p-2 bg-black/20 hover:bg-white hover:text-black transition-colors'>
-                              <TbArrowUpRight />
-                            </button>
+                          ))
+                        ) : (
+                          <div className='w-full h-full flex items-center justify-center bg-black text-white rounded-3xl text-lg'>
+                            관련된 프로젝트가 없습니다.
                           </div>
-                        ))}
+                        )}
                       </div>
                     </div>
                   </div>

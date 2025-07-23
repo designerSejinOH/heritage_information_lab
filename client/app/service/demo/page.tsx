@@ -123,10 +123,23 @@ export default function Page() {
   // 이전 단계로 이동
   const handlePrevStep = () => {
     if (currentStep > 0) {
-      setCurrentStep((prev) => prev - 1)
-      // **수정: 이전 단계의 선택된 값으로 설정**
-      const prevFilterKey = filterKeys[currentStep - 1]
+      const newStep = currentStep - 1
+      setCurrentStep(newStep)
+
+      // 이전 단계의 선택된 값으로 설정
+      const prevFilterKey = filterKeys[newStep]
       setCurrentActiveOption(selectedFilters[prevFilterKey] || null)
+
+      // 현재 단계 이후의 모든 필터 초기화 (중요!)
+      setSelectedFilters((prev) => {
+        const newFilters = { ...prev }
+        for (let i = currentStep; i < filterKeys.length; i++) {
+          newFilters[filterKeys[i]] = null
+        }
+        return newFilters
+      })
+
+      // 상태 초기화
       setIsSelecting(false)
       setShowNextButton(false)
       setShowGeneratedContent(false)
@@ -162,6 +175,7 @@ export default function Page() {
         isSelecting={isSelecting}
         isLoading={isLoading}
         showGeneratedContent={showGeneratedContent}
+        selectedFilters={selectedFilters} // 새로 추가된 prop
       />
 
       {/* 하단 스와이퍼 영역 */}
