@@ -18,8 +18,8 @@ interface ImageModalData {
   title: string
 }
 
-// 한글/한문 이미지를 안전하게 로드하는 컴포넌트
-const SafeKoreanImage = ({
+// 한글 파일명을 안전하게 처리하는 강화된 컴포넌트
+const RobustKoreanImage = ({
   imageName,
   alt,
   className,
@@ -32,69 +32,125 @@ const SafeKoreanImage = ({
   onClick?: () => void
   basePath?: string
 }) => {
-  const [currentIndex, setCurrentIndex] = useState(0)
+  const [currentSrc, setCurrentSrc] = useState<string>('')
   const [isLoaded, setIsLoaded] = useState(false)
-  const [hasError, setHasError] = useState(false)
+  const [attemptIndex, setAttemptIndex] = useState(0)
 
-  // 여러 fallback 경로 생성
-  const fallbackPaths = useMemo(() => {
+  // 여러 방식의 경로 생성
+  const pathAttempts = useMemo(() => {
     if (!imageName) return [`${basePath}/default.png`]
 
-    const fileName = imageName.includes('.') ? imageName : `${imageName}.png`
+    const attempts = []
 
-    return [
-      // 1. URL 인코딩된 경로
-      `${basePath}/${encodeURIComponent(fileName)}`,
-      // 2. 원본 경로 (한글 그대로)
-      `${basePath}/${fileName}`,
-      // 3. URI 인코딩된 경로
-      `${basePath}/${encodeURI(fileName)}`,
-      // 4. 기본 이미지
-      `${basePath}/default.png`,
-    ]
+    // 1. 원본 그대로 (가장 단순)
+    attempts.push(`${basePath}/${imageName}`)
+
+    // 2. 간단한 URL 컴포넌트별 인코딩
+    try {
+      const pathParts = imageName.split('/')
+      const encodedParts = pathParts.map((part) => encodeURIComponent(part))
+      attempts.push(`${basePath}/${encodedParts.join('/')}`)
+    } catch (e) {
+      // 인코딩 실패시 원본 사용
+    }
+
+    // 3. 전체 경로 인코딩
+    try {
+      attempts.push(`${basePath}/${encodeURI(imageName)}`)
+    } catch (e) {
+      // 인코딩 실패시 스킵
+    }
+
+    // 4. Fetch API로 확인 후 사용 (비동기이므로 마지막에)
+    attempts.push(`${basePath}/default.png`)
+
+    return attempts
   }, [imageName, basePath])
 
-  // imageName이 변경되면 초기화
+  // imageName이 변경되면 처음부터 다시 시도
   useEffect(() => {
-    setCurrentIndex(0)
+    setAttemptIndex(0)
     setIsLoaded(false)
-    setHasError(false)
-  }, [imageName])
+    if (pathAttempts.length > 0) {
+      setCurrentSrc(pathAttempts[0])
+    }
+  }, [imageName, pathAttempts])
+
+  // 현재 시도 중인 경로 설정
+  useEffect(() => {
+    if (pathAttempts[attemptIndex]) {
+      setCurrentSrc(pathAttempts[attemptIndex])
+    }
+  }, [attemptIndex, pathAttempts])
 
   const handleError = () => {
-    console.warn(`한글 이미지 로드 실패: ${fallbackPaths[currentIndex]}`)
+    console.warn(`이미지 로드 실패 (시도 ${attemptIndex + 1}/${pathAttempts.length}): ${currentSrc}`)
 
-    if (currentIndex < fallbackPaths.length - 1) {
-      setCurrentIndex((prev) => prev + 1)
-      setHasError(false)
+    if (attemptIndex < pathAttempts.length - 1) {
+      setAttemptIndex((prev) => prev + 1)
     } else {
-      console.error(`모든 fallback 시도 완료: ${imageName}`)
-      setHasError(true)
+      console.error(`모든 경로 시도 완료: ${imageName}`)
     }
   }
 
   const handleLoad = () => {
     setIsLoaded(true)
-    setHasError(false)
-    console.log(`한글 이미지 로드 성공: ${fallbackPaths[currentIndex]}`)
+    console.log(`이미지 로드 성공 (시도 ${attemptIndex + 1}): ${currentSrc}`)
   }
 
   return (
     <img
-      key={`korean-${imageName}-${currentIndex}`}
-      src={fallbackPaths[currentIndex]}
+      key={`robust-${imageName}-${attemptIndex}`}
+      src={currentSrc}
       alt={alt}
       className={className}
       onClick={onClick}
       onError={handleError}
       onLoad={handleLoad}
       style={{
-        opacity: isLoaded && !hasError ? 1 : 0.7,
+        opacity: isLoaded ? 1 : 0.8,
         transition: 'opacity 0.3s ease',
-        backgroundColor: hasError ? '#f3f4f6' : 'transparent',
       }}
     />
   )
+}
+
+// 네트워크 요청으로 이미지 존재 여부 확인하는 함수
+const checkImageExists = async (url: string): Promise<boolean> => {
+  try {
+    const response = await fetch(url, { method: 'HEAD' })
+    return response.ok
+  } catch (error) {
+    console.warn(`이미지 존재 확인 실패: ${url}`, error)
+    return false
+  }
+}
+
+// 가장 적합한 이미지 경로를 찾는 함수
+const findBestImagePath = async (imageName: string | undefined, basePath: string = '/img/source'): Promise<string> => {
+  if (!imageName) return `${basePath}/default.png`
+
+  const candidates = [
+    `${basePath}/${imageName}`, // 원본
+    `${basePath}/${encodeURIComponent(imageName)}`, // URL 인코딩
+    `${basePath}/${encodeURI(imageName)}`, // URI 인코딩
+  ]
+
+  // 각 후보를 순차적으로 확인
+  for (const candidate of candidates) {
+    try {
+      const exists = await checkImageExists(candidate)
+      if (exists) {
+        console.log(`최적 경로 발견: ${candidate}`)
+        return candidate
+      }
+    } catch (error) {
+      continue
+    }
+  }
+
+  console.warn(`모든 후보 실패, 기본 이미지 사용: ${imageName}`)
+  return `${basePath}/default.png`
 }
 
 export const SuccessModal = ({
@@ -123,37 +179,20 @@ export const SuccessModal = ({
     setImageModal(null)
   }
 
-  // 안전한 이미지 클릭 핸들러 생성
-  const createSafeImageClickHandler = (imageName: string | undefined, name: string) => {
-    if (!imageName) {
-      return () =>
-        handleImageClick({
-          src: '/img/source/default.png',
-          alt: name,
-          title: name,
-        })
-    }
-
-    const fileName = imageName.includes('.') ? imageName : `${imageName}.png`
-
-    // 첫 번째 시도 경로 (URL 인코딩)
-    let safePath: string
-    try {
-      safePath = `/img/source/${encodeURIComponent(fileName)}`
-    } catch (error) {
-      console.warn('URL 인코딩 실패, 원본 경로 사용:', fileName)
-      safePath = `/img/source/${fileName}`
-    }
-
-    return () =>
+  // 이미지 클릭 핸들러 - 비동기로 최적 경로 찾기
+  const createAsyncImageClickHandler = (imageName: string | undefined, name: string) => {
+    return async () => {
+      const bestPath = await findBestImagePath(imageName, '/img/source')
       handleImageClick({
-        src: safePath,
+        src: bestPath,
         alt: name,
         title: name,
       })
+    }
   }
 
   console.log('resultItem:', resultItem)
+  console.log('selectedFilters:', selectedFilters)
 
   return (
     <>
@@ -233,13 +272,20 @@ export const SuccessModal = ({
                           당신이 찾는 유물이 맞나요?
                         </span>
 
-                        {/* 한글 파일명을 지원하는 메인 이미지 */}
-                        <SafeKoreanImage
+                        {/* 한글 파일명을 완벽 지원하는 메인 이미지 */}
+                        <RobustKoreanImage
                           imageName={resultItem?.image}
-                          alt={resultItem?.image || '유물 이미지'}
+                          alt={resultItem?.명칭 || '유물 이미지'}
                           className='w-full h-full object-cover rounded-lg cursor-pointer hover:scale-105 transition-transform'
-                          onClick={createSafeImageClickHandler(resultItem?.image, resultItem?.명칭 || '유물')}
+                          onClick={createAsyncImageClickHandler(resultItem?.image, resultItem?.명칭 || '유물')}
                         />
+
+                        {/* 디버깅 정보 */}
+                        {resultItem && (
+                          <div className='absolute bottom-2 left-2 text-xs text-white/50 bg-black/30 p-2 rounded'>
+                            Debug: {resultItem.image || 'No image'}
+                          </div>
+                        )}
                       </main>
 
                       {/* Right Panel */}
@@ -297,10 +343,10 @@ export const SuccessModal = ({
                               >
                                 <div
                                   className='w-auto h-[14vh] aspect-square cursor-pointer hover:scale-105 transition-transform'
-                                  onClick={createSafeImageClickHandler(item.image, item.name)}
+                                  onClick={createAsyncImageClickHandler(item.image, item.name)}
                                 >
-                                  {/* 한글 파일명을 지원하는 추천 이미지 */}
-                                  <SafeKoreanImage
+                                  {/* 한글 파일명을 완벽 지원하는 추천 이미지 */}
+                                  <RobustKoreanImage
                                     imageName={item.image}
                                     alt={item.name}
                                     className='w-full h-full object-cover rounded-xl'
@@ -332,10 +378,10 @@ export const SuccessModal = ({
                               >
                                 <div
                                   className='w-full h-[12vh] relative cursor-pointer hover:scale-105 transition-transform'
-                                  onClick={createSafeImageClickHandler(project.image, project.name)}
+                                  onClick={createAsyncImageClickHandler(project.image, project.name)}
                                 >
-                                  {/* 한글 파일명을 지원하는 프로젝트 이미지 */}
-                                  <SafeKoreanImage
+                                  {/* 한글 파일명을 완벽 지원하는 프로젝트 이미지 */}
+                                  <RobustKoreanImage
                                     imageName={project.image}
                                     alt={project.name}
                                     className='w-full h-full object-contain rounded-xl bg-white aspect-square'
@@ -422,7 +468,7 @@ export const SuccessModal = ({
                 <TbX className='w-6 h-6' />
               </button>
 
-              {/* 확대된 이미지 - 안전한 fallback 처리 */}
+              {/* 확대된 이미지 - 다중 fallback 처리 */}
               <div className='relative'>
                 <img
                   src={imageModal.src}
@@ -431,11 +477,15 @@ export const SuccessModal = ({
                   onError={(e) => {
                     const target = e.target as HTMLImageElement
                     console.warn(`확대 이미지 로드 실패: ${target.src}`)
-                    // URL 디코딩된 경로 시도
-                    if (target.src.includes('%')) {
+
+                    // 원본 URL에서 다른 인코딩 방식 시도
+                    const originalSrc = target.src
+                    if (originalSrc.includes('img/source/')) {
+                      const imagePath = originalSrc.split('img/source/')[1]
                       try {
-                        const decodedSrc = decodeURIComponent(target.src)
-                        target.src = decodedSrc
+                        // URL 디코딩 후 다시 시도
+                        const decodedPath = decodeURIComponent(imagePath)
+                        target.src = `/img/source/${decodedPath}`
                       } catch (decodeError) {
                         target.src = '/img/source/default.png'
                       }
