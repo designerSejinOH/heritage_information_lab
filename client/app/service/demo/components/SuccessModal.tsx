@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 import { list } from '../list'
 import { TbDots, TbArrowUpRight, TbSearch, TbX } from 'react-icons/tb'
 import Image from 'next/image'
@@ -18,38 +18,8 @@ interface ImageModalData {
   title: string
 }
 
-// 한글/한문 이미지 경로를 안전하게 처리하는 함수
-const createSafeImagePath = (imageName: string | undefined, basePath: string = '/img/source'): string => {
-  if (!imageName) return `${basePath}/default.png`
-
-  // 파일 확장자가 없으면 .png 추가
-  const fileName = imageName.includes('.') ? imageName : `${imageName}.png`
-
-  // URL 인코딩으로 한글/한문 처리
-  const encodedFileName = encodeURIComponent(fileName)
-  return `${basePath}/${encodedFileName}`
-}
-
-// 여러 fallback 경로를 생성하는 함수
-const generateImageFallbacks = (imageName: string | undefined, basePath: string = '/img/source'): string[] => {
-  if (!imageName) return [`${basePath}/default.png`]
-
-  const fileName = imageName.includes('.') ? imageName : `${imageName}.png`
-
-  return [
-    // 1. URL 인코딩된 경로
-    `${basePath}/${encodeURIComponent(fileName)}`,
-    // 2. 원본 경로
-    `${basePath}/${fileName}`,
-    // 3. URI 인코딩된 경로
-    `${basePath}/${encodeURI(fileName)}`,
-    // 4. 기본 이미지
-    `${basePath}/default.png`,
-  ]
-}
-
-// 안전한 이미지 컴포넌트
-const SafeImage = ({
+// 한글/한문 이미지를 안전하게 로드하는 컴포넌트
+const SafeKoreanImage = ({
   imageName,
   alt,
   className,
@@ -63,28 +33,55 @@ const SafeImage = ({
   basePath?: string
 }) => {
   const [currentIndex, setCurrentIndex] = useState(0)
-  const [hasLoaded, setHasLoaded] = useState(false)
+  const [isLoaded, setIsLoaded] = useState(false)
+  const [hasError, setHasError] = useState(false)
 
-  const fallbackPaths = useMemo(() => generateImageFallbacks(imageName, basePath), [imageName, basePath])
+  // 여러 fallback 경로 생성
+  const fallbackPaths = useMemo(() => {
+    if (!imageName) return [`${basePath}/default.png`]
+
+    const fileName = imageName.includes('.') ? imageName : `${imageName}.png`
+
+    return [
+      // 1. URL 인코딩된 경로
+      `${basePath}/${encodeURIComponent(fileName)}`,
+      // 2. 원본 경로 (한글 그대로)
+      `${basePath}/${fileName}`,
+      // 3. URI 인코딩된 경로
+      `${basePath}/${encodeURI(fileName)}`,
+      // 4. 기본 이미지
+      `${basePath}/default.png`,
+    ]
+  }, [imageName, basePath])
+
+  // imageName이 변경되면 초기화
+  useEffect(() => {
+    setCurrentIndex(0)
+    setIsLoaded(false)
+    setHasError(false)
+  }, [imageName])
 
   const handleError = () => {
-    console.warn(`이미지 로드 실패: ${fallbackPaths[currentIndex]}`)
+    console.warn(`한글 이미지 로드 실패: ${fallbackPaths[currentIndex]}`)
 
     if (currentIndex < fallbackPaths.length - 1) {
       setCurrentIndex((prev) => prev + 1)
+      setHasError(false)
     } else {
       console.error(`모든 fallback 시도 완료: ${imageName}`)
+      setHasError(true)
     }
   }
 
   const handleLoad = () => {
-    setHasLoaded(true)
-    console.log(`이미지 로드 성공: ${fallbackPaths[currentIndex]}`)
+    setIsLoaded(true)
+    setHasError(false)
+    console.log(`한글 이미지 로드 성공: ${fallbackPaths[currentIndex]}`)
   }
 
   return (
     <img
-      key={`${imageName}-${currentIndex}`}
+      key={`korean-${imageName}-${currentIndex}`}
       src={fallbackPaths[currentIndex]}
       alt={alt}
       className={className}
@@ -92,8 +89,9 @@ const SafeImage = ({
       onError={handleError}
       onLoad={handleLoad}
       style={{
-        opacity: hasLoaded ? 1 : 0.7,
+        opacity: isLoaded && !hasError ? 1 : 0.7,
         transition: 'opacity 0.3s ease',
+        backgroundColor: hasError ? '#f3f4f6' : 'transparent',
       }}
     />
   )
@@ -125,31 +123,26 @@ export const SuccessModal = ({
     setImageModal(null)
   }
 
-  // 안전한 이미지 클릭 핸들러 - URI 디코딩 오류 방지
-  const createSafeImageClickHandler = (
-    imageName: string | undefined,
-    name: string,
-    basePath: string = '/img/source',
-  ) => {
+  // 안전한 이미지 클릭 핸들러 생성
+  const createSafeImageClickHandler = (imageName: string | undefined, name: string) => {
     if (!imageName) {
       return () =>
         handleImageClick({
-          src: `${basePath}/default.png`,
+          src: '/img/source/default.png',
           alt: name,
           title: name,
         })
     }
 
-    // 파일 확장자가 없으면 .png 추가
     const fileName = imageName.includes('.') ? imageName : `${imageName}.png`
 
-    // 안전한 URL 인코딩 시도
+    // 첫 번째 시도 경로 (URL 인코딩)
     let safePath: string
     try {
-      safePath = `${basePath}/${encodeURIComponent(fileName)}`
+      safePath = `/img/source/${encodeURIComponent(fileName)}`
     } catch (error) {
       console.warn('URL 인코딩 실패, 원본 경로 사용:', fileName)
-      safePath = `${basePath}/${fileName}`
+      safePath = `/img/source/${fileName}`
     }
 
     return () =>
@@ -215,7 +208,7 @@ export const SuccessModal = ({
                         <h2 className='text-white text-4xl font-semibold'>눈으로 보는 유물의 길 </h2>
                       </div>
                       <div className='w-full relative text-2xl h-full border-[1.5px] border-white rounded-2xl flex items-center justify-start'>
-                        <div className='h-full aspect-square w-auto flex items-center justify-center '>
+                        <div className='h-full aspect-square w-auto flex items-center justify-center'>
                           <TbSearch />
                         </div>
                         <input
@@ -234,22 +227,18 @@ export const SuccessModal = ({
 
                     {/* content */}
                     <div className='w-full h-[48vh] flex flex-row gap-8 px-6 py-3'>
-                      {/* Left Panel */}
+                      {/* Left Panel - 메인 유물 이미지 */}
                       <main className='w-3/5 h-full aspect-square rounded-3xl relative overflow-hidden'>
-                        <span className='absolute top-6 left-6 text-white text-2xl font-semibold leading-tight'>
+                        <span className='absolute top-6 left-6 text-white text-2xl font-semibold leading-tight z-10'>
                           당신이 찾는 유물이 맞나요?
                         </span>
 
-                        {/* 메인 이미지 - 한글 파일명 지원 */}
-                        <SafeImage
+                        {/* 한글 파일명을 지원하는 메인 이미지 */}
+                        <SafeKoreanImage
                           imageName={resultItem?.image}
                           alt={resultItem?.image || '유물 이미지'}
                           className='w-full h-full object-cover rounded-lg cursor-pointer hover:scale-105 transition-transform'
-                          onClick={createSafeImageClickHandler(
-                            resultItem?.image,
-                            resultItem?.명칭 || '유물',
-                            '/img/source',
-                          )}
+                          onClick={createSafeImageClickHandler(resultItem?.image, resultItem?.명칭 || '유물')}
                         />
                       </main>
 
@@ -308,10 +297,10 @@ export const SuccessModal = ({
                               >
                                 <div
                                   className='w-auto h-[14vh] aspect-square cursor-pointer hover:scale-105 transition-transform'
-                                  onClick={createSafeImageClickHandler(item.image, item.name, '/img/source')}
+                                  onClick={createSafeImageClickHandler(item.image, item.name)}
                                 >
-                                  {/* 추천 아이템 이미지 - 한글 파일명 지원 */}
-                                  <SafeImage
+                                  {/* 한글 파일명을 지원하는 추천 이미지 */}
+                                  <SafeKoreanImage
                                     imageName={item.image}
                                     alt={item.name}
                                     className='w-full h-full object-cover rounded-xl'
@@ -343,10 +332,10 @@ export const SuccessModal = ({
                               >
                                 <div
                                   className='w-full h-[12vh] relative cursor-pointer hover:scale-105 transition-transform'
-                                  onClick={createSafeImageClickHandler(project.image, project.name, '/img/source')}
+                                  onClick={createSafeImageClickHandler(project.image, project.name)}
                                 >
-                                  {/* 프로젝트 이미지 - 한글 파일명 지원 */}
-                                  <SafeImage
+                                  {/* 한글 파일명을 지원하는 프로젝트 이미지 */}
+                                  <SafeKoreanImage
                                     imageName={project.image}
                                     alt={project.name}
                                     className='w-full h-full object-contain rounded-xl bg-white aspect-square'
@@ -433,7 +422,7 @@ export const SuccessModal = ({
                 <TbX className='w-6 h-6' />
               </button>
 
-              {/* 확대된 이미지 - 한글 파일명 지원 */}
+              {/* 확대된 이미지 - 안전한 fallback 처리 */}
               <div className='relative'>
                 <img
                   src={imageModal.src}
@@ -442,7 +431,17 @@ export const SuccessModal = ({
                   onError={(e) => {
                     const target = e.target as HTMLImageElement
                     console.warn(`확대 이미지 로드 실패: ${target.src}`)
-                    target.src = '/img/source/default.png'
+                    // URL 디코딩된 경로 시도
+                    if (target.src.includes('%')) {
+                      try {
+                        const decodedSrc = decodeURIComponent(target.src)
+                        target.src = decodedSrc
+                      } catch (decodeError) {
+                        target.src = '/img/source/default.png'
+                      }
+                    } else {
+                      target.src = '/img/source/default.png'
+                    }
                   }}
                 />
               </div>
