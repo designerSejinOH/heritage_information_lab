@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect } from 'react'
+import { useMemo, useState } from 'react'
 import { list } from '../list'
 import { TbDots, TbArrowUpRight, TbSearch, TbX } from 'react-icons/tb'
 import Image from 'next/image'
@@ -16,85 +16,6 @@ interface ImageModalData {
   src: string
   alt: string
   title: string
-}
-
-// 한글/한문 이미지를 안전하게 로드하는 컴포넌트
-const SafeKoreanImage = ({
-  imageName,
-  alt,
-  className,
-  onClick,
-  basePath = '/img/source',
-}: {
-  imageName: string | undefined
-  alt: string
-  className?: string
-  onClick?: () => void
-  basePath?: string
-}) => {
-  const [currentIndex, setCurrentIndex] = useState(0)
-  const [isLoaded, setIsLoaded] = useState(false)
-  const [hasError, setHasError] = useState(false)
-
-  // 여러 fallback 경로 생성
-  const fallbackPaths = useMemo(() => {
-    if (!imageName) return [`${basePath}/default.png`]
-
-    const fileName = imageName.includes('.') ? imageName : `${imageName}.png`
-
-    return [
-      // 1. URL 인코딩된 경로
-      `${basePath}/${encodeURIComponent(fileName)}`,
-      // 2. 원본 경로 (한글 그대로)
-      `${basePath}/${fileName}`,
-      // 3. URI 인코딩된 경로
-      `${basePath}/${encodeURI(fileName)}`,
-      // 4. 기본 이미지
-      `${basePath}/default.png`,
-    ]
-  }, [imageName, basePath])
-
-  // imageName이 변경되면 초기화
-  useEffect(() => {
-    setCurrentIndex(0)
-    setIsLoaded(false)
-    setHasError(false)
-  }, [imageName])
-
-  const handleError = () => {
-    console.warn(`한글 이미지 로드 실패: ${fallbackPaths[currentIndex]}`)
-
-    if (currentIndex < fallbackPaths.length - 1) {
-      setCurrentIndex((prev) => prev + 1)
-      setHasError(false)
-    } else {
-      console.error(`모든 fallback 시도 완료: ${imageName}`)
-      setHasError(true)
-    }
-  }
-
-  const handleLoad = () => {
-    setIsLoaded(true)
-    setHasError(false)
-    console.log(`한글 이미지 로드 성공: ${fallbackPaths[currentIndex]}`)
-  }
-
-  return (
-    <img
-      key={`korean-${imageName}-${currentIndex}`}
-      src={fallbackPaths[currentIndex]}
-      alt={alt}
-      className={className}
-      onClick={onClick}
-      onError={handleError}
-      onLoad={handleLoad}
-      style={{
-        opacity: isLoaded && !hasError ? 1 : 0.7,
-        transition: 'opacity 0.3s ease',
-        backgroundColor: hasError ? '#f3f4f6' : 'transparent',
-      }}
-    />
-  )
 }
 
 export const SuccessModal = ({
@@ -115,42 +36,16 @@ export const SuccessModal = ({
       item.용도 === selectedFilters.용도,
   )
 
+  const encodedImageName = (imageName) => {
+    return encodeURIComponent(imageName).replace(/%20/g, ' ')
+  }
+
   const handleImageClick = (imageData: ImageModalData) => {
     setImageModal(imageData)
   }
 
   const handleImageModalClose = () => {
     setImageModal(null)
-  }
-
-  // 안전한 이미지 클릭 핸들러 생성
-  const createSafeImageClickHandler = (imageName: string | undefined, name: string) => {
-    if (!imageName) {
-      return () =>
-        handleImageClick({
-          src: '/img/source/default.png',
-          alt: name,
-          title: name,
-        })
-    }
-
-    const fileName = imageName.includes('.') ? imageName : `${imageName}.png`
-
-    // 첫 번째 시도 경로 (URL 인코딩)
-    let safePath: string
-    try {
-      safePath = `/img/source/${encodeURIComponent(fileName)}`
-    } catch (error) {
-      console.warn('URL 인코딩 실패, 원본 경로 사용:', fileName)
-      safePath = `/img/source/${fileName}`
-    }
-
-    return () =>
-      handleImageClick({
-        src: safePath,
-        alt: name,
-        title: name,
-      })
   }
 
   console.log('resultItem:', resultItem)
@@ -177,7 +72,6 @@ export const SuccessModal = ({
                   </svg>
                 </button>
               )}
-
               {/* 로딩 애니메이션 */}
               <AnimatePresence>
                 {isGenerating && (
@@ -187,6 +81,7 @@ export const SuccessModal = ({
                     transition={{ duration: 0.5 }}
                     className='w-full h-full relative flex flex-col justify-center items-center gap-4 mb-6'
                   >
+                    {/* 로딩 애니메이션 */}
                     <div className='w-16 h-16 border-4 border-white/20 border-t-white rounded-full animate-spin'></div>
                     <p className='text-white/80 animate-pulse'>선택된 메타데이터를 통해 유물을 찾고 있습니다...</p>
                   </motion.div>
@@ -207,8 +102,8 @@ export const SuccessModal = ({
                       <div className='flex-shrink-0 h-full flex items-center justify-start'>
                         <h2 className='text-white text-4xl font-semibold'>눈으로 보는 유물의 길 </h2>
                       </div>
-                      <div className='w-full relative text-2xl h-full border-[1.5px] border-white rounded-2xl flex items-center justify-start'>
-                        <div className='h-full aspect-square w-auto flex items-center justify-center'>
+                      <div className='w-full relative  text-2xl h-full border-[1.5px] border-white rounded-2xl  flex items-center justify-start'>
+                        <div className='h-full aspect-square w-auto flex items-center justify-center '>
                           <TbSearch />
                         </div>
                         <input
@@ -227,18 +122,24 @@ export const SuccessModal = ({
 
                     {/* content */}
                     <div className='w-full h-[48vh] flex flex-row gap-8 px-6 py-3'>
-                      {/* Left Panel - 메인 유물 이미지 */}
+                      {/* Left Panel */}
                       <main className='w-3/5 h-full aspect-square rounded-3xl relative overflow-hidden'>
-                        <span className='absolute top-6 left-6 text-white text-2xl font-semibold leading-tight z-10'>
+                        {/* 선택된 옵션 조합으로 되어있는 폴더에 이미지 접근 */}
+                        <span className='absolute top-6 left-6 text-white text-2xl font-semibold leading-tight'>
                           당신이 찾는 유물이 맞나요?
                         </span>
-
-                        {/* 한글 파일명을 지원하는 메인 이미지 */}
-                        <SafeKoreanImage
-                          imageName={resultItem?.image}
-                          alt={resultItem?.image || '유물 이미지'}
+                        <img
+                          src={`/img/source/${resultItem ? encodedImageName(resultItem.image) : 'default'}`}
+                          alt={resultItem ? resultItem.image : '유물 이미지'}
                           className='w-full h-full object-cover rounded-lg cursor-pointer hover:scale-105 transition-transform'
-                          onClick={createSafeImageClickHandler(resultItem?.image, resultItem?.명칭 || '유물')}
+                          onClick={() =>
+                            resultItem &&
+                            handleImageClick({
+                              src: `/img/source/${encodedImageName(resultItem.image)}`,
+                              alt: resultItem.image,
+                              title: resultItem.명칭,
+                            })
+                          }
                         />
                       </main>
 
@@ -250,13 +151,13 @@ export const SuccessModal = ({
                           <div className='flex flex-col justify-start gap-2'>
                             <span className='opacity-50 text-base'>유물 명칭</span>
                             <p className='w-full text-white break-keep text-base font-semibold'>
-                              {resultItem?.명칭 || '생성된 유물이 없습니다.'}
+                              {resultItem ? resultItem.명칭 : '생성된 유물이 없습니다.'}
                             </p>
                           </div>
                           <div className='flex flex-col justify-start gap-2'>
                             <span className='opacity-50 text-base'>유물 설명</span>
                             <p className='w-full text-white break-keep text-base'>
-                              {resultItem?.description || '유물에 대한 설명이 없습니다.'}
+                              {resultItem ? resultItem.description : '유물에 대한 설명이 없습니다.'}
                             </p>
                           </div>
                           <div className='flex flex-col justify-start gap-2'>
@@ -264,44 +165,49 @@ export const SuccessModal = ({
                             <ul className='w-full text-white text-base'>
                               <li className='flex justify-start gap-4'>
                                 <span className='opacity-70'>형태</span>
-                                <span>{resultItem?.형태}</span>
+                                <span>{resultItem.형태}</span>
                               </li>
                               <li className='flex justify-start gap-4'>
                                 <span className='opacity-70'>재질</span>
-                                <span>{resultItem?.재질}</span>
+                                <span>{resultItem.재질}</span>
                               </li>
                               <li className='flex justify-start gap-4'>
                                 <span className='opacity-70'>시대</span>
-                                <span>{resultItem?.시대}</span>
+                                <span>{resultItem.시대}</span>
                               </li>
                               <li className='flex justify-start gap-4'>
                                 <span className='opacity-70'>용도</span>
-                                <span>{resultItem?.용도}</span>
+                                <span>{resultItem.용도}</span>
                               </li>
                             </ul>
                           </div>
                         </div>
                       </aside>
                     </div>
-
                     <div className='w-full h-[36vh] flex flex-row px-6 py-3 gap-8 items-center justify-between'>
-                      {/* 추천 유물 섹션 */}
-                      <div className='w-[70%] h-full flex flex-col items-start justify-start gap-3'>
+                      {/* 더미 카드 좌우 스크롤 */}
+                      <div className='w-[70%] h-full flex flex-col items-start justify-start gap-3 '>
                         <div className='text-2xl w-full font-semibold py-3 text-white'>이런 유물을 추천드려요</div>
                         <div className='w-full h-full flex flex-row items-start justify-start gap-6'>
-                          {resultItem?.recommended_items?.length ? (
+                          {resultItem.recommended_items.length ? (
                             resultItem.recommended_items.map((item, index) => (
                               <div
                                 className='w-1/3 h-full p-6 relative flex flex-col items-start justify-start gap-6 bg-black text-white rounded-3xl'
                                 key={index}
                               >
                                 <div
+                                  key={index}
                                   className='w-auto h-[14vh] aspect-square cursor-pointer hover:scale-105 transition-transform'
-                                  onClick={createSafeImageClickHandler(item.image, item.name)}
+                                  onClick={() =>
+                                    handleImageClick({
+                                      src: `/img/source/${encodedImageName(item.image)}`,
+                                      alt: item.name,
+                                      title: item.name,
+                                    })
+                                  }
                                 >
-                                  {/* 한글 파일명을 지원하는 추천 이미지 */}
-                                  <SafeKoreanImage
-                                    imageName={item.image}
+                                  <img
+                                    src={`/img/source/${encodedImageName(item.image)}`}
                                     alt={item.name}
                                     className='w-full h-full object-cover rounded-xl'
                                   />
@@ -319,24 +225,29 @@ export const SuccessModal = ({
                           )}
                         </div>
                       </div>
-
-                      {/* 관련 프로젝트 섹션 */}
-                      <div className='flex-1 h-full flex flex-col items-start justify-start gap-3'>
+                      {/* 관련 프로젝트 */}
+                      <div className='flex-1 h-full flex flex-col items-start justify-start gap-3 '>
                         <div className='text-2xl w-full font-semibold py-3 text-white'>관련된 프로젝트 및 전시</div>
                         <div className='w-full h-full flex flex-row items-start justify-start gap-6'>
-                          {resultItem?.related_projects?.length ? (
+                          {resultItem.related_projects.length ? (
                             resultItem.related_projects.map((project, index) => (
                               <div
                                 key={index}
                                 className='w-full relative h-full p-6 flex flex-col items-end justify-start gap-6 bg-black text-white rounded-3xl'
                               >
                                 <div
+                                  key={index}
                                   className='w-full h-[12vh] relative cursor-pointer hover:scale-105 transition-transform'
-                                  onClick={createSafeImageClickHandler(project.image, project.name)}
+                                  onClick={() =>
+                                    handleImageClick({
+                                      src: `/img/source/${project.image}`,
+                                      alt: project.name,
+                                      title: project.name,
+                                    })
+                                  }
                                 >
-                                  {/* 한글 파일명을 지원하는 프로젝트 이미지 */}
-                                  <SafeKoreanImage
-                                    imageName={project.image}
+                                  <img
+                                    src={`/img/source/${encodedImageName(project.image)}`}
                                     alt={project.name}
                                     className='w-full h-full object-contain rounded-xl bg-white aspect-square'
                                   />
@@ -357,8 +268,6 @@ export const SuccessModal = ({
                         </div>
                       </div>
                     </div>
-
-                    {/* Footer */}
                     <div className='flex w-full h-fit flex-row items-center justify-between gap-4 px-8 py-3'>
                       <div className='flex h-fit w-fit flex-row items-center justify-center gap-6'>
                         <Image
@@ -383,6 +292,7 @@ export const SuccessModal = ({
                           className='w-28'
                         />
                       </div>
+                      {/* copyright */}
                       <div className='flex-shrink-0 text-sm text-gray-500'>
                         © {new Date().getFullYear()} Heritage Information Lab. All rights reserved.
                       </div>
@@ -422,28 +332,9 @@ export const SuccessModal = ({
                 <TbX className='w-6 h-6' />
               </button>
 
-              {/* 확대된 이미지 - 안전한 fallback 처리 */}
+              {/* 이미지 */}
               <div className='relative'>
-                <img
-                  src={imageModal.src}
-                  alt={imageModal.alt}
-                  className='w-full h-auto max-h-[70vh] object-contain'
-                  onError={(e) => {
-                    const target = e.target as HTMLImageElement
-                    console.warn(`확대 이미지 로드 실패: ${target.src}`)
-                    // URL 디코딩된 경로 시도
-                    if (target.src.includes('%')) {
-                      try {
-                        const decodedSrc = decodeURIComponent(target.src)
-                        target.src = decodedSrc
-                      } catch (decodeError) {
-                        target.src = '/img/source/default.png'
-                      }
-                    } else {
-                      target.src = '/img/source/default.png'
-                    }
-                  }}
-                />
+                <img src={imageModal.src} alt={imageModal.alt} className='w-full h-auto max-h-[70vh] object-contain' />
               </div>
 
               {/* 정보 패널 */}
