@@ -207,7 +207,7 @@ export default function Page() {
         </div>
       </Header>
       <Foo
-        className='absolute top-0 left-0 w-full h-full pointer-events-none bg-black/10'
+        className='absolute top-0 left-0 w-full h-full pointer-events-none bg-[#000]'
         currentStep={currentStep}
         selectedFilters={selectedFilters}
       />

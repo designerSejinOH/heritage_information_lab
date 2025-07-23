@@ -87,7 +87,9 @@ export const Controls = ({
           onClick={handleSelectComplete}
           disabled={!currentActiveOption || isSelecting || isLoading}
           className={`w-60 h-fit flex justify-center items-center font-medium bg-white text-black text-2xl border-[1.5px] border-white rounded-2xl px-4 py-2 transition-all duration-300 ${
-            !currentActiveOption || isSelecting || isLoading ? 'opacity-50 cursor-not-allowed' : 'hover:rounded-[20px]'
+            !currentActiveOption || isSelecting || isLoading
+              ? 'opacity-50 cursor-not-allowed'
+              : 'hover:rounded-[20px] hover:bg-black hover:text-white'
           }`}
         >
           {isLoading ? '생성 중...' : '선택 완료'}

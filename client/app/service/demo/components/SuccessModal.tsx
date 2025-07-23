@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { list } from '../list'
 import { TbDots, TbArrowUpRight, TbSearch, TbX } from 'react-icons/tb'
 import Image from 'next/image'
@@ -12,6 +12,12 @@ interface SuccessModalProps {
   selectedFilters: Record<string, string>
 }
 
+interface ImageModalData {
+  src: string
+  alt: string
+  title: string
+}
+
 export const SuccessModal = ({
   showModal,
   handleCloseModal,
@@ -19,6 +25,8 @@ export const SuccessModal = ({
   generationComplete,
   selectedFilters,
 }: SuccessModalProps) => {
+  const [imageModal, setImageModal] = useState<ImageModalData | null>(null)
+
   const dataset = list
   const resultItem = dataset.find(
     (item) =>
@@ -27,6 +35,14 @@ export const SuccessModal = ({
       item.시대 === selectedFilters.시대 &&
       item.용도 === selectedFilters.용도,
   )
+
+  const handleImageClick = (imageData: ImageModalData) => {
+    setImageModal(imageData)
+  }
+
+  const handleImageModalClose = () => {
+    setImageModal(null)
+  }
 
   console.log('resultItem:', resultItem)
 
@@ -111,7 +127,15 @@ export const SuccessModal = ({
                         <img
                           src={`/img/source/${resultItem ? resultItem.image : 'default'}`}
                           alt={resultItem ? resultItem.image : '유물 이미지'}
-                          className='w-full h-full object-cover rounded-lg'
+                          className='w-full h-full object-cover rounded-lg cursor-pointer hover:scale-105 transition-transform'
+                          onClick={() =>
+                            resultItem &&
+                            handleImageClick({
+                              src: `/img/source/${resultItem.image}`,
+                              alt: resultItem.image,
+                              title: resultItem.명칭,
+                            })
+                          }
                         />
                       </main>
 
@@ -167,7 +191,17 @@ export const SuccessModal = ({
                                 className='w-1/3 h-full p-6 relative flex flex-col items-start justify-start gap-6 bg-black text-white rounded-3xl'
                                 key={index}
                               >
-                                <div key={index} className='w-auto h-[14vh] aspect-square'>
+                                <div
+                                  key={index}
+                                  className='w-auto h-[14vh] aspect-square cursor-pointer hover:scale-105 transition-transform'
+                                  onClick={() =>
+                                    handleImageClick({
+                                      src: `/img/source/${item.image}`,
+                                      alt: item.name,
+                                      title: item.name,
+                                    })
+                                  }
+                                >
                                   <img
                                     src={`/img/source/${item.image}`}
                                     alt={item.name}
@@ -197,7 +231,17 @@ export const SuccessModal = ({
                                 key={index}
                                 className='w-full relative h-full p-6 flex flex-col items-end justify-start gap-6 bg-black text-white rounded-3xl'
                               >
-                                <div key={index} className='w-full h-[12vh] relative'>
+                                <div
+                                  key={index}
+                                  className='w-full h-[12vh] relative cursor-pointer hover:scale-105 transition-transform'
+                                  onClick={() =>
+                                    handleImageClick({
+                                      src: `/img/source/${project.image}`,
+                                      alt: project.name,
+                                      title: project.name,
+                                    })
+                                  }
+                                >
                                   <img
                                     src={`/img/source/${project.image}`}
                                     alt={project.name}
@@ -253,6 +297,47 @@ export const SuccessModal = ({
                 )}
               </AnimatePresence>
             </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* 이미지 확대 모달 */}
+      <AnimatePresence>
+        {imageModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.3 }}
+            className='fixed inset-0 z-[60] flex items-center justify-center bg-black/80 backdrop-blur-sm'
+            onClick={handleImageModalClose}
+          >
+            <motion.div
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.8, opacity: 0 }}
+              transition={{ duration: 0.3 }}
+              className='relative max-w-4xl max-h-[90vh] bg-white rounded-2xl overflow-hidden shadow-2xl'
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* 닫기 버튼 */}
+              <button
+                onClick={handleImageModalClose}
+                className='absolute top-4 right-4 z-10 text-white bg-black/50 hover:bg-black/70 rounded-full p-2 transition-colors'
+              >
+                <TbX className='w-6 h-6' />
+              </button>
+
+              {/* 이미지 */}
+              <div className='relative'>
+                <img src={imageModal.src} alt={imageModal.alt} className='w-full h-auto max-h-[70vh] object-contain' />
+              </div>
+
+              {/* 정보 패널 */}
+              <div className='p-6 bg-white'>
+                <h3 className='text-2xl font-bold text-black mb-2'>{imageModal.title}</h3>
+              </div>
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>

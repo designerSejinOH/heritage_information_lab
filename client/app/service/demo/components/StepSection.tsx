@@ -239,7 +239,7 @@ const ParticleSystem = ({ isLoading }: { isLoading: boolean }) => {
         rotate: [0, 360],
       }}
       transition={{
-        duration: 60, // 60초에 한 바퀴 (더 느리게)
+        duration: 100, // 60초에 한 바퀴 (더 느리게)
         ease: 'linear',
         repeat: Infinity,
         repeatType: 'loop',
@@ -354,7 +354,7 @@ export const StepSection = ({
                   }`}
                 >
                   {currentActiveOption && !isLoading && (
-                    <div className='text-sm text-blue-400'>현재 선택된 옵션: {currentActiveOption}</div>
+                    <div className='text-sm opacity-50'>현재 선택된 옵션: {currentActiveOption}</div>
                   )}
 
                   {isSelecting && !isLoading && (
