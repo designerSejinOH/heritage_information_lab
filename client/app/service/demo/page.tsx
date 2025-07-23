@@ -100,16 +100,20 @@ export default function Page() {
 
   // 스와이퍼 재선택 시 상태 초기화
   const handleSwiperReselect = () => {
+    // 선택 완료된 상태에서 스와이퍼 움직일 때만 해제
     if (isSelecting || showNextButton) {
       setIsSelecting(false)
       setShowNextButton(false)
       setShowGeneratedContent(false)
       setIsLoading(false)
-      // 현재 단계의 필터 값도 초기화
+
+      // 현재 단계의 필터 값 해제
       setSelectedFilters((prev) => ({
         ...prev,
         [currentFilterKey]: null,
       }))
+
+      // currentActiveOption은 유지 (스와이퍼 위치 반영)
     }
   }
 
@@ -130,7 +134,7 @@ export default function Page() {
       const prevFilterKey = filterKeys[newStep]
       setCurrentActiveOption(selectedFilters[prevFilterKey] || null)
 
-      // 현재 단계 이후의 모든 필터 초기화 (중요!)
+      // 현재 단계 이후의 모든 필터 초기화
       setSelectedFilters((prev) => {
         const newFilters = { ...prev }
         for (let i = currentStep; i < filterKeys.length; i++) {
@@ -147,13 +151,56 @@ export default function Page() {
     }
   }
 
+  const handleResetAll = () => {
+    // 모든 필터 초기화
+    setSelectedFilters({
+      형태: null,
+      재질: null,
+      시대: null,
+      용도: null,
+    })
+
+    // 첫 번째 단계로 이동
+    setCurrentStep(0)
+    setCurrentActiveOption(null)
+
+    // 모든 상태 초기화
+    setIsSelecting(false)
+    setShowNextButton(false)
+    setShowGeneratedContent(false)
+    setIsLoading(false)
+    setShowModal(false)
+    setIsGenerating(false)
+    setGenerationComplete(false)
+  }
+
+  // 현재 단계 선택 해제 함수 (새로 추가)
+  const handleClearCurrentStep = () => {
+    // 현재 단계만 초기화
+    setSelectedFilters((prev) => ({
+      ...prev,
+      [currentFilterKey]: null,
+    }))
+
+    setCurrentActiveOption(null)
+    setIsSelecting(false)
+    setShowNextButton(false)
+    setShowGeneratedContent(false)
+    setIsLoading(false)
+  }
+
   return (
     <div className='relative flex h-screen w-screen flex-col items-center justify-between overflow-hidden'>
-      <Header>
+      <Header
+        onResetAll={handleResetAll}
+        onClearCurrentStep={handleClearCurrentStep}
+        currentStep={currentStep}
+        filterKeys={filterKeys}
+      >
         <div className='w-[20vw] h-fit grid grid-cols-2 gap-4 bg-white/10 p-4 rounded-xl'>
           {filterKeys.map((key) => (
-            <div key={key} className='w-full h-fit flex  items-center gap-2'>
-              <span className=' pr-4 text-sm font-medium text-white'>{key}</span>
+            <div key={key} className='w-full h-fit flex items-center gap-2'>
+              <span className='pr-4 text-sm font-medium text-white'>{key}</span>
               <span className='text-sm text-gray-300'>{selectedFilters[key] || '-'}</span>
             </div>
           ))}
@@ -161,8 +208,8 @@ export default function Page() {
       </Header>
       <Foo
         className='absolute top-0 left-0 w-full h-full pointer-events-none bg-black/10'
-        artifacts={list}
-        selectedFilters={{}}
+        currentStep={currentStep}
+        selectedFilters={selectedFilters}
       />
 
       {/* 상단 컨텐츠 영역 */}
@@ -204,8 +251,10 @@ export default function Page() {
         handlePrevStep={handlePrevStep}
         handleNextStep={handleNextStep}
         handleSelectComplete={handleSelectComplete}
+        handleClearCurrentStep={handleClearCurrentStep}
         showNextButton={showNextButton}
         progress={progress}
+        currentFilterKey={currentFilterKey}
       />
 
       <div className='fixed bottom-0 left-0 z-10 w-full h-1 bg-white/20 overflow-hidden'>

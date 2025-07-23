@@ -41,7 +41,7 @@ export const SuccessModal = ({
             transition={{ duration: 0.3 }}
             className='fixed inset-0 z-50 flex items-end justify-center bg-black/50'
           >
-            <div className='bg-white/10 backdrop-blur-md rounded-2xl w-full h-full border border-white/20'>
+            <div className='bg-white/10 backdrop-blur-md w-full h-full border border-white/20'>
               {!generationComplete && (
                 <button
                   onClick={handleCloseModal}
@@ -53,191 +53,205 @@ export const SuccessModal = ({
                 </button>
               )}
               {/* 로딩 애니메이션 */}
-              {isGenerating && (
-                <div className='w-full h-full relative flex flex-col justify-center items-center gap-4 mb-6'>
-                  {/* 로딩 애니메이션 */}
-                  <div className='w-16 h-16 border-4 border-white/20 border-t-white rounded-full animate-spin'></div>
-                  <p className='text-white/80 animate-pulse'>선택된 메타데이터를 통해 유물을 찾고 있습니다...</p>
-                </div>
-              )}
+              <AnimatePresence>
+                {isGenerating && (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ duration: 0.5 }}
+                    className='w-full h-full relative flex flex-col justify-center items-center gap-4 mb-6'
+                  >
+                    {/* 로딩 애니메이션 */}
+                    <div className='w-16 h-16 border-4 border-white/20 border-t-white rounded-full animate-spin'></div>
+                    <p className='text-white/80 animate-pulse'>선택된 메타데이터를 통해 유물을 찾고 있습니다...</p>
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
               {/* 생성 완료 메시지 */}
-              {generationComplete && (
-                <div className='w-full h-full flex flex-col py-3'>
-                  {/* Search Bar */}
-                  <div className='w-full h-[8vh] px-6 py-3 flex flex-row gap-6 mb-1'>
-                    <div className='flex-shrink-0 h-full flex items-center justify-start'>
-                      <h2 className='text-white text-4xl font-semibold'>눈으로 보는 유물의 길 </h2>
-                    </div>
-                    <div className='w-full relative  text-2xl h-full border-[1.5px] border-white rounded-2xl bg-black flex items-center justify-start'>
-                      <div className='h-full aspect-square w-auto flex items-center justify-center '>
-                        <TbSearch />
+              <AnimatePresence>
+                {generationComplete && (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ duration: 0.5 }}
+                    className='w-full h-full flex flex-col py-3'
+                  >
+                    {/* Search Bar */}
+                    <div className='w-full h-[8vh] px-6 py-3 flex flex-row gap-6 mb-1'>
+                      <div className='flex-shrink-0 h-full flex items-center justify-start'>
+                        <h2 className='text-white text-4xl font-semibold'>눈으로 보는 유물의 길 </h2>
                       </div>
-                      <input
-                        type='text'
-                        placeholder='유물에 대한 상세 검색을 해보세요.'
-                        className='w-full bg-transparent rounded-lg placeholder:opacity-70 text-white outline-none'
-                      />
-                    </div>
-                    <button
-                      onClick={handleCloseModal}
-                      className='w-auto h-full aspect-square text-2xl flex items-center justify-center border-[1.5px] border-white rounded-2xl bg-black hover:bg-white hover:text-black transition-colors'
-                    >
-                      <TbX />
-                    </button>
-                  </div>
-
-                  {/* content */}
-                  <div className='w-full h-[48vh] flex flex-row gap-8 px-6 py-3'>
-                    {/* Left Panel */}
-                    <main className='w-3/5 h-full aspect-square rounded-3xl relative overflow-hidden'>
-                      {/* 선택된 옵션 조합으로 되어있는 폴더에 이미지 접근 */}
-                      <span className='absolute top-6 left-6 text-white text-2xl font-semibold leading-tight'>
-                        당신이 찾는 유물이 맞나요?
-                      </span>
-                      <img
-                        src={`/img/source/${resultItem ? resultItem.image : 'default'}`}
-                        alt={resultItem ? resultItem.image : '유물 이미지'}
-                        className='w-full h-full object-cover rounded-lg'
-                      />
-                    </main>
-
-                    {/* Right Panel */}
-                    <aside className='flex-1 overflow-y-auto p-6 rounded-3xl bg-black'>
-                      <h2 className='text-white text-2xl font-semibold mb-6'>당신이 찾은 유물은 주로...</h2>
-
-                      <div className='flex flex-col gap-4 justify-start items-start'>
-                        <div className='flex flex-col justify-start gap-2'>
-                          <span className='opacity-50 text-base'>유물 명칭</span>
-                          <p className='w-full text-white break-keep text-base font-semibold'>
-                            {resultItem ? resultItem.명칭 : '생성된 유물이 없습니다.'}
-                          </p>
+                      <div className='w-full relative  text-2xl h-full border-[1.5px] border-white rounded-2xl  flex items-center justify-start'>
+                        <div className='h-full aspect-square w-auto flex items-center justify-center '>
+                          <TbSearch />
                         </div>
-                        <div className='flex flex-col justify-start gap-2'>
-                          <span className='opacity-50 text-base'>유물 설명</span>
-                          <p className='w-full text-white break-keep text-base'>
-                            {resultItem ? resultItem.description : '유물에 대한 설명이 없습니다.'}
-                          </p>
-                        </div>
-                        <div className='flex flex-col justify-start gap-2'>
-                          <span className='opacity-50 text-base'>유물 메타데이터</span>
-                          <ul className='w-full text-white text-base'>
-                            <li className='flex justify-start gap-4'>
-                              <span className='opacity-70'>형태</span>
-                              <span>{resultItem.형태}</span>
-                            </li>
-                            <li className='flex justify-start gap-4'>
-                              <span className='opacity-70'>재질</span>
-                              <span>{resultItem.재질}</span>
-                            </li>
-                            <li className='flex justify-start gap-4'>
-                              <span className='opacity-70'>시대</span>
-                              <span>{resultItem.시대}</span>
-                            </li>
-                            <li className='flex justify-start gap-4'>
-                              <span className='opacity-70'>용도</span>
-                              <span>{resultItem.용도}</span>
-                            </li>
-                          </ul>
-                        </div>
+                        <input
+                          type='text'
+                          placeholder='유물에 대한 상세 검색을 해보세요.'
+                          className='w-full bg-transparent rounded-lg placeholder:opacity-70 text-white outline-none'
+                        />
                       </div>
-                    </aside>
-                  </div>
-                  <div className='w-full h-[36vh] flex flex-row px-6 py-3 gap-8 items-center justify-between'>
-                    {/* 더미 카드 좌우 스크롤 */}
-                    <div className='w-[70%] h-full flex flex-col items-start justify-start gap-3 '>
-                      <div className='text-2xl w-full font-semibold py-3 text-white'>이런 유물을 추천드려요</div>
-                      <div className='w-full h-full flex flex-row items-start justify-start gap-6'>
-                        {resultItem.recommended_items.length ? (
-                          resultItem.recommended_items.map((item, index) => (
-                            <div
-                              className='w-1/3 h-full p-6 relative flex flex-col items-start justify-start gap-6 bg-black text-white rounded-3xl'
-                              key={index}
-                            >
-                              <div key={index} className='w-auto h-[14vh] aspect-square'>
-                                <img
-                                  src={`/img/source/${item.image}`}
-                                  alt={item.name}
-                                  className='w-full h-full object-cover rounded-xl'
-                                />
-                              </div>
-                              <span className='text-xl font-semibold break-keep'>{item.name}</span>
-                              <button className='absolute bottom-4 right-4 text-xl rounded-2xl text-white border-[1.5px] border-white flex items-center justify-center p-2 bg-black/20 hover:bg-white hover:text-black transition-colors'>
-                                <TbDots />
-                              </button>
-                            </div>
-                          ))
-                        ) : (
-                          <div className='w-full h-full flex items-center justify-center bg-black text-white rounded-3xl text-lg'>
-                            추천할 수 있는 유물이 없습니다.
+                      <button
+                        onClick={handleCloseModal}
+                        className='w-auto h-full aspect-square text-2xl flex items-center justify-center border-[1.5px] border-white rounded-2xl bg-white text-black hover:bg-black hover:text-white transition-colors'
+                      >
+                        <TbX />
+                      </button>
+                    </div>
+
+                    {/* content */}
+                    <div className='w-full h-[48vh] flex flex-row gap-8 px-6 py-3'>
+                      {/* Left Panel */}
+                      <main className='w-3/5 h-full aspect-square rounded-3xl relative overflow-hidden'>
+                        {/* 선택된 옵션 조합으로 되어있는 폴더에 이미지 접근 */}
+                        <span className='absolute top-6 left-6 text-white text-2xl font-semibold leading-tight'>
+                          당신이 찾는 유물이 맞나요?
+                        </span>
+                        <img
+                          src={`/img/source/${resultItem ? resultItem.image : 'default'}`}
+                          alt={resultItem ? resultItem.image : '유물 이미지'}
+                          className='w-full h-full object-cover rounded-lg'
+                        />
+                      </main>
+
+                      {/* Right Panel */}
+                      <aside className='flex-1 overflow-y-auto p-6 rounded-3xl bg-black'>
+                        <h2 className='text-white text-2xl font-semibold mb-6'>당신이 찾은 유물은 주로...</h2>
+
+                        <div className='flex flex-col gap-4 justify-start items-start'>
+                          <div className='flex flex-col justify-start gap-2'>
+                            <span className='opacity-50 text-base'>유물 명칭</span>
+                            <p className='w-full text-white break-keep text-base font-semibold'>
+                              {resultItem ? resultItem.명칭 : '생성된 유물이 없습니다.'}
+                            </p>
                           </div>
-                        )}
-                      </div>
-                    </div>
-                    {/* 관련 프로젝트 */}
-                    <div className='flex-1 h-full flex flex-col items-start justify-start gap-3 '>
-                      <div className='text-2xl w-full font-semibold py-3 text-white'>관련된 프로젝트 및 전시</div>
-                      <div className='w-full h-full flex flex-row items-start justify-start gap-6'>
-                        {resultItem.related_projects.length ? (
-                          resultItem.related_projects.map((project, index) => (
-                            <div
-                              key={index}
-                              className='w-full relative h-full p-6 flex flex-col items-end justify-start gap-6 bg-black text-white rounded-3xl'
-                            >
-                              <div key={index} className='w-full h-[12vh] relative'>
-                                <img
-                                  src={`/img/source/${project.image}`}
-                                  alt={project.name}
-                                  className='w-full h-full object-contain rounded-xl bg-white aspect-square'
-                                />
-                              </div>
-                              <div className='w-full h-full text-white text-base font-semibold break-keep'>
-                                {project.name}
-                              </div>
-                              <button className='absolute bottom-4 right-4 text-xl rounded-2xl text-white border-[1.5px] border-white flex items-center justify-center p-2 bg-black/20 hover:bg-white hover:text-black transition-colors'>
-                                <TbArrowUpRight />
-                              </button>
-                            </div>
-                          ))
-                        ) : (
-                          <div className='w-full h-full flex items-center justify-center bg-black text-white rounded-3xl text-lg'>
-                            관련된 프로젝트가 없습니다.
+                          <div className='flex flex-col justify-start gap-2'>
+                            <span className='opacity-50 text-base'>유물 설명</span>
+                            <p className='w-full text-white break-keep text-base'>
+                              {resultItem ? resultItem.description : '유물에 대한 설명이 없습니다.'}
+                            </p>
                           </div>
-                        )}
+                          <div className='flex flex-col justify-start gap-2'>
+                            <span className='opacity-50 text-base'>유물 메타데이터</span>
+                            <ul className='w-full text-white text-base'>
+                              <li className='flex justify-start gap-4'>
+                                <span className='opacity-70'>형태</span>
+                                <span>{resultItem.형태}</span>
+                              </li>
+                              <li className='flex justify-start gap-4'>
+                                <span className='opacity-70'>재질</span>
+                                <span>{resultItem.재질}</span>
+                              </li>
+                              <li className='flex justify-start gap-4'>
+                                <span className='opacity-70'>시대</span>
+                                <span>{resultItem.시대}</span>
+                              </li>
+                              <li className='flex justify-start gap-4'>
+                                <span className='opacity-70'>용도</span>
+                                <span>{resultItem.용도}</span>
+                              </li>
+                            </ul>
+                          </div>
+                        </div>
+                      </aside>
+                    </div>
+                    <div className='w-full h-[36vh] flex flex-row px-6 py-3 gap-8 items-center justify-between'>
+                      {/* 더미 카드 좌우 스크롤 */}
+                      <div className='w-[70%] h-full flex flex-col items-start justify-start gap-3 '>
+                        <div className='text-2xl w-full font-semibold py-3 text-white'>이런 유물을 추천드려요</div>
+                        <div className='w-full h-full flex flex-row items-start justify-start gap-6'>
+                          {resultItem.recommended_items.length ? (
+                            resultItem.recommended_items.map((item, index) => (
+                              <div
+                                className='w-1/3 h-full p-6 relative flex flex-col items-start justify-start gap-6 bg-black text-white rounded-3xl'
+                                key={index}
+                              >
+                                <div key={index} className='w-auto h-[14vh] aspect-square'>
+                                  <img
+                                    src={`/img/source/${item.image}`}
+                                    alt={item.name}
+                                    className='w-full h-full object-cover rounded-xl'
+                                  />
+                                </div>
+                                <span className='text-xl font-semibold break-keep'>{item.name}</span>
+                                <button className='absolute bottom-4 right-4 text-xl rounded-2xl text-white border-[1.5px] border-white flex items-center justify-center p-2 bg-black/20 hover:bg-white hover:text-black transition-colors'>
+                                  <TbDots />
+                                </button>
+                              </div>
+                            ))
+                          ) : (
+                            <div className='w-full h-full flex items-center justify-center bg-black text-white rounded-3xl text-lg'>
+                              추천할 수 있는 유물이 없습니다.
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      {/* 관련 프로젝트 */}
+                      <div className='flex-1 h-full flex flex-col items-start justify-start gap-3 '>
+                        <div className='text-2xl w-full font-semibold py-3 text-white'>관련된 프로젝트 및 전시</div>
+                        <div className='w-full h-full flex flex-row items-start justify-start gap-6'>
+                          {resultItem.related_projects.length ? (
+                            resultItem.related_projects.map((project, index) => (
+                              <div
+                                key={index}
+                                className='w-full relative h-full p-6 flex flex-col items-end justify-start gap-6 bg-black text-white rounded-3xl'
+                              >
+                                <div key={index} className='w-full h-[12vh] relative'>
+                                  <img
+                                    src={`/img/source/${project.image}`}
+                                    alt={project.name}
+                                    className='w-full h-full object-contain rounded-xl bg-white aspect-square'
+                                  />
+                                </div>
+                                <div className='w-full h-full text-white text-base font-semibold break-keep'>
+                                  {project.name}
+                                </div>
+                                <button className='absolute bottom-4 right-4 text-xl rounded-2xl text-white border-[1.5px] border-white flex items-center justify-center p-2 bg-black/20 hover:bg-white hover:text-black transition-colors'>
+                                  <TbArrowUpRight />
+                                </button>
+                              </div>
+                            ))
+                          ) : (
+                            <div className='w-full h-full flex items-center justify-center bg-black text-white rounded-3xl text-lg'>
+                              관련된 프로젝트가 없습니다.
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                  <div className='flex w-full h-fit flex-row items-center justify-between gap-4 px-8 py-3'>
-                    <div className='flex h-fit w-fit flex-row items-center justify-center gap-6'>
-                      <Image
-                        src='/img/전통대-워드타입B.png'
-                        alt='한국전통문화대학교'
-                        width={200}
-                        height={200}
-                        className='w-24'
-                      />
-                      <Image
-                        src='/img/중앙박물관-화이트.png'
-                        alt='국립중앙박물관'
-                        width={200}
-                        height={200}
-                        className='w-24'
-                      />
-                      <Image
-                        src='/img/에트리-워드타입.png'
-                        alt='한국전자통신연구원'
-                        width={200}
-                        height={200}
-                        className='w-28'
-                      />
+                    <div className='flex w-full h-fit flex-row items-center justify-between gap-4 px-8 py-3'>
+                      <div className='flex h-fit w-fit flex-row items-center justify-center gap-6'>
+                        <Image
+                          src='/img/전통대-워드타입B.png'
+                          alt='한국전통문화대학교'
+                          width={200}
+                          height={200}
+                          className='w-24'
+                        />
+                        <Image
+                          src='/img/중앙박물관-화이트.png'
+                          alt='국립중앙박물관'
+                          width={200}
+                          height={200}
+                          className='w-24'
+                        />
+                        <Image
+                          src='/img/에트리-워드타입.png'
+                          alt='한국전자통신연구원'
+                          width={200}
+                          height={200}
+                          className='w-28'
+                        />
+                      </div>
+                      {/* copyright */}
+                      <div className='flex-shrink-0 text-sm text-gray-500'>
+                        © {new Date().getFullYear()} Heritage Information Lab. All rights reserved.
+                      </div>
                     </div>
-                    {/* copyright */}
-                    <div className='flex-shrink-0 text-sm text-gray-500'>
-                      © {new Date().getFullYear()} Heritage Information Lab. All rights reserved.
-                    </div>
-                  </div>
-                </div>
-              )}
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
           </motion.div>
         )}

@@ -106,15 +106,211 @@ const Particle = ({ index, isLoading }: { index: number; isLoading: boolean }) =
 }
 
 // 파티클 시스템 컴포넌트
+// 3D 회전 파티클 시스템
+const ParticleSystem3D = ({ isLoading }: { isLoading: boolean }) => {
+  const particles = Array.from({ length: 25 }, (_, i) => i)
+
+  return (
+    <motion.div
+      className='absolute inset-0 pointer-events-none'
+      style={{
+        perspective: '1000px', // 3D 원근감
+        transformStyle: 'preserve-3d', // 3D 변환 유지
+      }}
+      animate={{
+        rotateY: 360, // Y축 회전 (좌우)
+        rotateX: [0, 10, 0, -10, 0], // X축 미세 진동 (위아래)
+      }}
+      transition={{
+        rotateY: {
+          duration: 25, // 25초에 한 바퀴
+          ease: 'linear',
+          repeat: Infinity,
+        },
+        rotateX: {
+          duration: 8, // 8초 주기로 위아래 진동
+          ease: 'easeInOut',
+          repeat: Infinity,
+        },
+      }}
+    >
+      {particles.map((index) => (
+        <Particle3D key={index} index={index} isLoading={isLoading} />
+      ))}
+    </motion.div>
+  )
+}
+
+// 3D 파티클 컴포넌트
+const Particle3D = ({ index, isLoading }: { index: number; isLoading: boolean }) => {
+  const initialPosition = useMemo(
+    () => ({
+      x: (Math.random() - 0.5) * 300,
+      y: (Math.random() - 0.5) * 300,
+      z: (Math.random() - 0.5) * 100, // Z축 추가
+    }),
+    [index],
+  )
+
+  const targetPosition = useMemo(() => {
+    const angle = (index * 360) / 25
+    const radius = 60 + (index % 3) * 20
+    // 구면 좌표계로 3D 위치 계산
+    const phi = (index * Math.PI) / 12 // 위도
+    return {
+      x: Math.cos((angle * Math.PI) / 180) * radius * Math.cos(phi),
+      y: Math.sin((angle * Math.PI) / 180) * radius * Math.cos(phi),
+      z: Math.sin(phi) * 30, // Z축 깊이
+    }
+  }, [index])
+
+  return (
+    <motion.div
+      className='absolute w-2 h-2 bg-white rounded-full opacity-80'
+      style={{
+        left: '50%',
+        top: '50%',
+        transform: 'translate(-50%, -50%)',
+      }}
+      initial={{
+        x: initialPosition.x,
+        y: initialPosition.y,
+        z: initialPosition.z,
+        scale: 0.5,
+        rotateX: 0,
+        rotateY: 0,
+        rotateZ: 0,
+      }}
+      animate={
+        isLoading
+          ? {
+              x: targetPosition.x,
+              y: targetPosition.y,
+              z: targetPosition.z,
+              scale: 1,
+              opacity: 1,
+              rotateX: 360,
+              rotateY: 360,
+              rotateZ: 180,
+            }
+          : {
+              x: initialPosition.x,
+              y: initialPosition.y,
+              z: initialPosition.z,
+              scale: 0.5,
+              opacity: 0.6,
+              rotateX: 0,
+              rotateY: 0,
+              rotateZ: 0,
+            }
+      }
+      transition={{
+        duration: 1.5,
+        ease: 'easeInOut',
+        delay: index * 0.05,
+        rotateX: {
+          duration: 6 + (index % 3), // 각기 다른 속도
+          ease: 'linear',
+          repeat: Infinity,
+        },
+        rotateY: {
+          duration: 8 + (index % 4),
+          ease: 'linear',
+          repeat: Infinity,
+        },
+        rotateZ: {
+          duration: 4 + (index % 2),
+          ease: 'linear',
+          repeat: Infinity,
+        },
+      }}
+    />
+  )
+}
+
+// 더 극적인 3D 효과
 const ParticleSystem = ({ isLoading }: { isLoading: boolean }) => {
   const particles = Array.from({ length: 25 }, (_, i) => i)
 
   return (
-    <div className='absolute inset-0 pointer-events-none'>
+    <motion.div
+      className='absolute inset-0 pointer-events-none'
+      animate={{
+        rotate: [0, 360],
+      }}
+      transition={{
+        duration: 60, // 60초에 한 바퀴 (더 느리게)
+        ease: 'linear',
+        repeat: Infinity,
+        repeatType: 'loop',
+      }}
+      style={{
+        transformOrigin: 'center center', // 중앙을 기준으로 회전
+      }}
+    >
       {particles.map((index) => (
         <Particle key={index} index={index} isLoading={isLoading} />
       ))}
-    </div>
+    </motion.div>
+  )
+}
+// 우주 같은 느낌의 3D 회전
+const ParticleSystemCosmic = ({ isLoading }: { isLoading: boolean }) => {
+  const particles = Array.from({ length: 25 }, (_, i) => i)
+
+  return (
+    <motion.div
+      className='absolute inset-0 pointer-events-none'
+      style={{
+        perspective: '1200px',
+        transformStyle: 'preserve-3d',
+      }}
+      animate={{
+        rotateY: 360,
+        rotateX: [0, 20, 0, -20, 0],
+        scale: [1, 1.05, 1, 0.95, 1], // 호흡하는 듯한 크기 변화
+      }}
+      transition={{
+        rotateY: {
+          duration: 30, // 느린 회전
+          ease: 'linear',
+          repeat: Infinity,
+        },
+        rotateX: {
+          duration: 18,
+          ease: 'easeInOut',
+          repeat: Infinity,
+        },
+        scale: {
+          duration: 6,
+          ease: 'easeInOut',
+          repeat: Infinity,
+        },
+      }}
+    >
+      {particles.map((index) => (
+        <motion.div
+          key={index}
+          className='absolute w-2 h-2 bg-white rounded-full'
+          style={{
+            left: '50%',
+            top: '50%',
+            transform: 'translate(-50%, -50%)',
+            boxShadow: '0 0 10px rgba(255,255,255,0.8)', // 글로우 효과
+          }}
+          animate={{
+            opacity: [0.3, 1, 0.3],
+            scale: [0.5, 1.2, 0.5],
+          }}
+          transition={{
+            duration: 3 + (index % 3),
+            ease: 'easeInOut',
+            repeat: Infinity,
+            delay: index * 0.1,
+          }}
+        />
+      ))}
+    </motion.div>
   )
 }
 
@@ -191,7 +387,7 @@ export const StepSection = ({
         <AnimatePresence>
           {showGeneratedContent && (
             <motion.div
-              className='absolute inset-0'
+              className='absolute inset-0 flex items-center justify-center overflow-hidden'
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.8 }}
