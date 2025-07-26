@@ -240,7 +240,7 @@ export const SuccessModal = ({
                                   className='w-full h-[12vh] relative cursor-pointer hover:scale-105 transition-transform'
                                   onClick={() =>
                                     handleImageClick({
-                                      src: `/img/source/${project.image}`,
+                                      src: `/img/source/${encodedImageName(project.image)}`,
                                       alt: project.name,
                                       title: project.name,
                                     })
