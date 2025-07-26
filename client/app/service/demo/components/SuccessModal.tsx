@@ -129,7 +129,7 @@ export const SuccessModal = ({
                           당신이 찾는 유물이 맞나요?
                         </span>
                         <img
-                          src={`/img/source/${resultItem ? encodedImageName(resultItem.image) : 'default'}`}
+                          src={`/img/source/${encodedImageName(resultItem.image)}`}
                           alt={resultItem ? resultItem.image : '유물 이미지'}
                           className='w-full h-full object-cover rounded-lg cursor-pointer hover:scale-105 transition-transform'
                           onClick={() =>
