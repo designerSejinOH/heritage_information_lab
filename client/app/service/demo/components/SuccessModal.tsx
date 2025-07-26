@@ -129,13 +129,13 @@ export const SuccessModal = ({
                           당신이 찾는 유물이 맞나요?
                         </span>
                         <img
-                          src={`/img/source/${encodedImageName(resultItem.image)}`}
+                          src={`/img/source/${encodeURIComponent(resultItem.image)}`}
                           alt={resultItem ? resultItem.image : '유물 이미지'}
                           className='w-full h-full object-cover rounded-lg cursor-pointer hover:scale-105 transition-transform'
                           onClick={() =>
                             resultItem &&
                             handleImageClick({
-                              src: `/img/source/${encodedImageName(resultItem.image)}`,
+                              src: `/img/source/${encodeURIComponent(resultItem.image)}`,
                               alt: resultItem.image,
                               title: resultItem.명칭,
                             })
@@ -200,14 +200,14 @@ export const SuccessModal = ({
                                   className='w-auto h-[14vh] aspect-square cursor-pointer hover:scale-105 transition-transform'
                                   onClick={() =>
                                     handleImageClick({
-                                      src: `/img/source/${encodedImageName(item.image)}`,
+                                      src: `/img/source/${encodeURIComponent(item.image)}`,
                                       alt: item.name,
                                       title: item.name,
                                     })
                                   }
                                 >
                                   <img
-                                    src={`/img/source/${encodedImageName(item.image)}`}
+                                    src={`/img/source/${encodeURIComponent(item.image)}`}
                                     alt={item.name}
                                     className='w-full h-full object-cover rounded-xl'
                                   />
@@ -240,14 +240,14 @@ export const SuccessModal = ({
                                   className='w-full h-[12vh] relative cursor-pointer hover:scale-105 transition-transform'
                                   onClick={() =>
                                     handleImageClick({
-                                      src: `/img/source/${encodedImageName(project.image)}`,
+                                      src: `/img/source/${encodeURIComponent(project.image)}`,
                                       alt: project.name,
                                       title: project.name,
                                     })
                                   }
                                 >
                                   <img
-                                    src={`/img/source/${encodedImageName(project.image)}`}
+                                    src={`/img/source/${encodeURIComponent(project.image)}`}
                                     alt={project.name}
                                     className='w-full h-full object-contain rounded-xl bg-white aspect-square'
                                   />
